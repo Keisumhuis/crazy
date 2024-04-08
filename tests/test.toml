@@ -1,0 +1,57 @@
+# 复杂的 TOML 文件示例
+
+name = "keisum"
+password = "123456"
+age = 123
+names = ["keisum1", "keisum2", "keisum3"]
+ages = [18, 24, 18, 32]
+
+[person]
+name = "jey"
+age = 22
+
+[general]
+  title = "Complex TOML Example"
+  version = 1.0
+  names = ["keisum4", "keisum5", "keisum6"]
+  
+[author]
+  name = "John Doe"
+  email = "john@example.com"
+  age = 123
+
+[database]
+  server = "localhost"
+  port = 5432
+  connection_timeout = 5000
+
+[[users]]
+  username = "user1"
+  roles = ["admin", "editor"]
+
+[[users]]
+  username = "user2"
+  roles = ["reader"]
+
+[[servers]]
+  name = "Server1"
+  ip = "192.168.1.1"
+  active = true
+
+[[servers]]
+  name = "Server2"
+  ip = "192.168.1.2"
+  active = false
+
+[settings]
+  [settings.display]
+    theme = "dark"
+    font_size = 14
+
+  [settings.network]
+    timeout = 3000
+    max_connections = 100
+
+[logging]
+  level = "info"
+  path = "/var/log/application.log"

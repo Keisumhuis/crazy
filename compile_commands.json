@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/root/work_space/crazy",
+  "command": "/usr/bin/c++   -I/root/work_space/crazy/src  -g   -std=c++17 -Wall -w -std=gnu++17 -o CMakeFiles/test_ascii_logo.dir/test/test_ascii_logo.cc.o -c /root/work_space/crazy/test/test_ascii_logo.cc",
+  "file": "/root/work_space/crazy/test/test_ascii_logo.cc"
+}
+]
