@@ -59,8 +59,8 @@ namespace crazy {
 		virtual IPAddress::Ptr NetworkAddress(const uint32_t prefix_len) = 0;
 		virtual IPAddress::Ptr SubnetMask(const uint32_t prefix_len) = 0;
 
-		virtual uint32_t GetPort() const = 0;
-		virtual void SetPort(const uint32_t port) = 0;
+		virtual uint16_t GetPort() const = 0;
+		virtual void SetPort(const uint16_t port) = 0;
 	};
 
 	class IPv4Address final : public IPAddress {
@@ -77,8 +77,8 @@ namespace crazy {
 		IPAddress::Ptr NetworkAddress(const uint32_t prefix_len) override;
 		IPAddress::Ptr SubnetMask(const uint32_t prefix_len) override;
 
-		uint32_t GetPort() const override;
-		void SetPort(const uint32_t port) override;
+		uint16_t GetPort() const override;
+		void SetPort(const uint16_t port) override;
 		std::string ToString() override;
 	private:
 		sockaddr_in m_addr;
@@ -98,8 +98,8 @@ namespace crazy {
 		IPAddress::Ptr NetworkAddress(const uint32_t prefix_len) override;
 		IPAddress::Ptr SubnetMask(const uint32_t prefix_len) override;
 
-		uint32_t GetPort() const override;
-		void SetPort(const uint32_t port) override;
+		uint16_t GetPort() const override;
+		void SetPort(const uint16_t port) override;
 		std::string ToString() override;
 	private:
 		sockaddr_in6 m_addr;

@@ -62,12 +62,37 @@ namespace crazy {
 		bool m_isLock = false;
 	};
 
-	class NullMutex final {
+	class CondMutexGuard;
+	class CondMutex final {
 	public:
-		void Lock() { m_isLock= true; }
-		void UnLock() { m_isLock = false; }
-		bool IsLock() const { return m_isLock; }
+		using Guard = CondMutexGuard;
+		CondMutex() {
+			pthread_cond_init(&m_cond, nullptr);
+			pthread_mutex_init(&m_mutex, nullptr);
+		}
+		~CondMutex() {
+			pthread_cond_destroy(&m_cond);
+			pthread_mutex_destroy(&m_mutex);
+		}
+		void Wait() {
+			pthread_cond_wait(&m_cond, &m_mutex);
+		}
+		void Signal() {
+			pthread_cond_signal(&m_cond);
+		}
+		void Lock() {
+			if(!pthread_mutex_lock(&m_mutex)) {
+				m_isLock = true;
+			}
+		}
+		void UnLock() {
+			if(!pthread_mutex_unlock(&m_mutex)) {
+				m_isLock = false;
+			}
+		}
 	private:
+		mutable pthread_cond_t m_cond;
+		pthread_mutex_t m_mutex;
 		bool m_isLock = false;
 	};
 
@@ -82,6 +107,28 @@ namespace crazy {
 		}
 	private:
 		Mutex m_mutex;
+	};
+
+	class NullMutex final {
+	public:
+		void Lock() { m_isLock= true; }
+		void UnLock() { m_isLock = false; }
+		bool IsLock() const { return m_isLock; }
+	private:
+		bool m_isLock = false;
+	};
+
+	class CondMutexGuard final : Noncopyable {
+	public:
+		CondMutexGuard(const CondMutex& m)
+	       	: m_mutex(m) {
+			m_mutex.Lock();	
+		}
+		~CondMutexGuard() {
+			m_mutex.UnLock();
+		}
+	private:
+		CondMutex m_mutex;
 	};
 
 	class SpinLockGuard;
@@ -198,10 +245,10 @@ namespace crazy {
         		m_mutex.clear();
     		}
     		~CASLock() {}
-    		void lock() {
+    		void Lock() {
         		while(std::atomic_flag_test_and_set_explicit(&m_mutex, std::memory_order_acquire));
     		}
-    		void unlock() {
+    		void Unlock() {
         		std::atomic_flag_clear_explicit(&m_mutex, std::memory_order_release);
     		}
 	private:

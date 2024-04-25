@@ -124,8 +124,8 @@ bool Socket::Connect(const Address::Ptr addr, uint64_t timeout_ms) {
 		return false;
 	}
 	if (::connect(m_socket, addr->GetAddr(), addr->GetAddrLen())) {
-		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "socket = " << m_socket << "errorno = " 
-			<< errno << " errstr = " << strerror(errno);
+		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "socket = " << m_socket << " errorno = " 
+			<< errno << " errstr = " << strerror(errno) << " addr = " << addr->ToString();
 		return false;
 	}
 	m_isConnected = true;

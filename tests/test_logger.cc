@@ -16,6 +16,8 @@ int main () {
 		CRAZY_ERROR(CRAZY_LOGGER(system)) << "test CRAZY_ERROR";	
 		CRAZY_WARN(CRAZY_LOGGER(system)) << "test CRAZY_WARN";	
 		CRAZY_FATAL(CRAZY_LOGGER(system)) << "test CRAZY_FATAL";	
+
+		CRAZY_DEBUG_FORMAT(CRAZY_ROOT_LOGGER(), "asdasdalsdjk %s", "asdasdasdasdasdasd");
 	}
 	return 0;
 }

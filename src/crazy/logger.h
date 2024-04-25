@@ -51,13 +51,13 @@
 #define CRAZY_ERROR(LOGGER) CRAZY_LOG(LOGGER, crazy::LoggerLevel::Error)
 #define CRAZY_FATAL(LOGGER) CRAZY_LOG(LOGGER, crazy::LoggerLevel::Fatal)
 
-#define CRAZY_LOG_FORMAT(LOGGER, LEVEL, FMT, ...)
-#define CRAZY_TRACE_FORMAT(LOGGER, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Trace, FMT, __VA_ARGS__)
-#define CRAZY_DEBUG_FORMAT(LOGGER, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Debug, FMT, __VA_ARGS__)
-#define CRAZY_INFO_FORMAT(LOGGER, ...)  CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Info,  FMT, __VA_ARGS__)
-#define CRAZY_WARN_FORMAT(LOGGER, ...)  CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Warn,  FMT, __VA_ARGS__)
-#define CRAZY_ERROR_FORMAT(LOGGER, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Error, FMT, __VA_ARGS__)
-#define CRAZY_FATAL_FORMAT(LOGGER, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Fatal, FMT, __VA_ARGS__)
+#define CRAZY_LOG_FORMAT(LOGGER, LEVEL, FMT, ...) crazy::LoggerWarp(LOGGER, LEVEL, crazy::GetCurrentUS(), __FILE__, __LINE__, getpid(), crazy::GetThreadId(), crazy::GetCoroutineId()).GetEvent()->Format(FMT, __VA_ARGS__) 
+#define CRAZY_TRACE_FORMAT(LOGGER, FMT, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Trace, FMT, __VA_ARGS__)
+#define CRAZY_DEBUG_FORMAT(LOGGER, FMT, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Debug, FMT, __VA_ARGS__)
+#define CRAZY_INFO_FORMAT(LOGGER, FMT, ...)  CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Info,  FMT, __VA_ARGS__)
+#define CRAZY_WARN_FORMAT(LOGGER, FMT, ...)  CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Warn,  FMT, __VA_ARGS__)
+#define CRAZY_ERROR_FORMAT(LOGGER, FMT, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Error, FMT, __VA_ARGS__)
+#define CRAZY_FATAL_FORMAT(LOGGER, FMT, ...) CRAZY_LOG_FORMAT(LOGGER, crazy::LoggerLevel::Fatal, FMT, __VA_ARGS__)
 
 namespace crazy { 
 
@@ -89,7 +89,8 @@ namespace crazy {
 		const uint64_t GetThreadId() const { return m_thread_id; }
 		const uint32_t GetFiberId() const { return m_fiber_id; }
 		std::stringstream& GetSS() { return m_ss; }
-
+    	void Format(const char* fmt, ...);
+    	void Format(const char* fmt, va_list al);
 	private:
 		std::shared_ptr<Logger> m_logger;
 		LoggerLevel m_level;
@@ -302,7 +303,7 @@ namespace crazy {
 				, const uint32_t thread_id, const uint32_t fiber_id);
 		~LoggerWarp();
 		std::stringstream& GetSS() { return m_spLoggerEvent->GetSS(); }
-
+		LoggerEvent::Ptr GetEvent() { return m_spLoggerEvent; }
 	private:
 		LoggerEvent::Ptr m_spLoggerEvent;
 	};

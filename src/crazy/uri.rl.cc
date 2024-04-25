@@ -13,7 +13,7 @@ static const int uri_parser_error = 0;
 static const int uri_parser_en_main = 451;
 
 
-#line 118 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 119 "/root/work_space/crazy/src/crazy/uri.rl"
 
 
 Uri::Ptr Uri::Create(const std::string& uristr) {
@@ -26,7 +26,7 @@ Uri::Ptr Uri::Create(const std::string& uristr) {
 	cs = uri_parser_start;
 	}
 
-#line 125 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 126 "/root/work_space/crazy/src/crazy/uri.rl"
     	const char *p = uristr.c_str();
     	const char *pe = p + uristr.size();
     	const char* eof = pe;
@@ -96,14 +96,14 @@ cs = 0;
 tr467:
 #line 16 "/root/work_space/crazy/src/crazy/uri.rl"
 	{ mark = p; }
-#line 93 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 94 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetQuery(std::string(mark, p - mark));
         mark = NULL;
     }
 	goto st453;
 tr469:
-#line 93 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 94 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetQuery(std::string(mark, p - mark));
         mark = NULL;
@@ -158,7 +158,8 @@ tr548:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st453;
@@ -173,14 +174,16 @@ tr559:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st453;
 tr563:
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st453;
@@ -196,7 +199,8 @@ tr566:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st453;
@@ -212,7 +216,8 @@ tr570:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st453;
@@ -220,7 +225,7 @@ st453:
 	if ( ++p == pe )
 		goto _test_eof453;
 case 453:
-#line 224 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 229 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 37: goto tr463;
 		case 60: goto st0;
@@ -248,7 +253,7 @@ st454:
 	if ( ++p == pe )
 		goto _test_eof454;
 case 454:
-#line 252 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 257 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 37: goto st1;
 		case 60: goto st0;
@@ -276,7 +281,7 @@ st1:
 	if ( ++p == pe )
 		goto _test_eof1;
 case 1:
-#line 280 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 285 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st2;
@@ -367,7 +372,7 @@ st455:
 	if ( ++p == pe )
 		goto _test_eof455;
 case 455:
-#line 371 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 376 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto st453;
@@ -462,7 +467,8 @@ tr556:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st456;
@@ -477,14 +483,16 @@ tr562:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st456;
 tr565:
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st456;
@@ -500,7 +508,8 @@ tr569:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st456;
@@ -516,7 +525,8 @@ tr573:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	goto st456;
@@ -524,7 +534,7 @@ st456:
 	if ( ++p == pe )
 		goto _test_eof456;
 case 456:
-#line 528 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 538 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto tr467;
@@ -551,7 +561,7 @@ st457:
 	if ( ++p == pe )
 		goto _test_eof457;
 case 457:
-#line 555 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 565 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto tr469;
@@ -578,7 +588,7 @@ st7:
 	if ( ++p == pe )
 		goto _test_eof7;
 case 7:
-#line 582 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 592 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st8;
@@ -667,7 +677,7 @@ st9:
 	if ( ++p == pe )
 		goto _test_eof9;
 case 9:
-#line 671 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 681 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( 48 <= (*p) && (*p) <= 52 )
 		goto st10;
 	goto st0;
@@ -813,7 +823,7 @@ st461:
 	if ( ++p == pe )
 		goto _test_eof461;
 case 461:
-#line 817 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 827 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 35: goto tr489;
 		case 47: goto tr490;
@@ -830,7 +840,7 @@ st462:
 	if ( ++p == pe )
 		goto _test_eof462;
 case 462:
-#line 834 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 844 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 35: goto tr493;
 		case 47: goto tr494;
@@ -976,7 +986,7 @@ st467:
 	if ( ++p == pe )
 		goto _test_eof467;
 case 467:
-#line 980 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 990 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st467;
 		case 35: goto tr485;
@@ -1006,7 +1016,7 @@ st31:
 	if ( ++p == pe )
 		goto _test_eof31;
 case 31:
-#line 1010 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1020 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st32;
@@ -1051,7 +1061,7 @@ st468:
 	if ( ++p == pe )
 		goto _test_eof468;
 case 468:
-#line 1055 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1065 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st33;
 		case 35: goto tr489;
@@ -1152,7 +1162,7 @@ st469:
 	if ( ++p == pe )
 		goto _test_eof469;
 case 469:
-#line 1156 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1166 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 2: goto tr472;
 		case 33: goto tr501;
@@ -1190,7 +1200,7 @@ st470:
 	if ( ++p == pe )
 		goto _test_eof470;
 case 470:
-#line 1194 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1204 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st470;
 		case 35: goto tr485;
@@ -1219,7 +1229,7 @@ st36:
 	if ( ++p == pe )
 		goto _test_eof36;
 case 36:
-#line 1223 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1233 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st37;
@@ -1250,7 +1260,7 @@ st471:
 	if ( ++p == pe )
 		goto _test_eof471;
 case 471:
-#line 1254 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1264 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st470;
 		case 35: goto tr485;
@@ -1657,7 +1667,7 @@ st485:
 	if ( ++p == pe )
 		goto _test_eof485;
 case 485:
-#line 1661 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1671 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st470;
 		case 35: goto tr485;
@@ -1691,7 +1701,7 @@ st486:
 	if ( ++p == pe )
 		goto _test_eof486;
 case 486:
-#line 1695 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1705 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st470;
 		case 35: goto tr485;
@@ -1725,7 +1735,7 @@ st487:
 	if ( ++p == pe )
 		goto _test_eof487;
 case 487:
-#line 1729 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1739 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st470;
 		case 35: goto tr485;
@@ -1791,7 +1801,7 @@ st38:
 	if ( ++p == pe )
 		goto _test_eof38;
 case 38:
-#line 1795 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 1805 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 58: goto st146;
 		case 118: goto st225;
@@ -4638,7 +4648,7 @@ st489:
 	if ( ++p == pe )
 		goto _test_eof489;
 case 489:
-#line 4642 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 4652 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st33;
 		case 35: goto tr493;
@@ -4673,7 +4683,7 @@ st490:
 	if ( ++p == pe )
 		goto _test_eof490;
 case 490:
-#line 4677 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 4687 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st467;
 		case 35: goto tr485;
@@ -5094,7 +5104,7 @@ st504:
 	if ( ++p == pe )
 		goto _test_eof504;
 case 504:
-#line 5098 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5108 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st467;
 		case 35: goto tr485;
@@ -5129,7 +5139,7 @@ st505:
 	if ( ++p == pe )
 		goto _test_eof505;
 case 505:
-#line 5133 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5143 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st467;
 		case 35: goto tr485;
@@ -5164,7 +5174,7 @@ st506:
 	if ( ++p == pe )
 		goto _test_eof506;
 case 506:
-#line 5168 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5178 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st467;
 		case 35: goto tr485;
@@ -5232,7 +5242,7 @@ st508:
 	if ( ++p == pe )
 		goto _test_eof508;
 case 508:
-#line 5236 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5246 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto st453;
@@ -5275,7 +5285,7 @@ st509:
 	if ( ++p == pe )
 		goto _test_eof509;
 case 509:
-#line 5279 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5289 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto st453;
@@ -5362,7 +5372,7 @@ st229:
 	if ( ++p == pe )
 		goto _test_eof229;
 case 229:
-#line 5366 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5376 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( 48 <= (*p) && (*p) <= 52 )
 		goto st230;
 	goto st0;
@@ -5532,7 +5542,7 @@ st513:
 	if ( ++p == pe )
 		goto _test_eof513;
 case 513:
-#line 5536 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5546 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 34: goto st0;
 		case 35: goto tr563;
@@ -5600,7 +5610,7 @@ st514:
 	if ( ++p == pe )
 		goto _test_eof514;
 case 514:
-#line 5604 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5614 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 35: goto tr566;
 		case 47: goto tr567;
@@ -5617,7 +5627,7 @@ st515:
 	if ( ++p == pe )
 		goto _test_eof515;
 case 515:
-#line 5621 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5631 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 35: goto tr570;
 		case 47: goto tr571;
@@ -5763,7 +5773,7 @@ st520:
 	if ( ++p == pe )
 		goto _test_eof520;
 case 520:
-#line 5767 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5777 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st520;
 		case 35: goto tr559;
@@ -5793,7 +5803,7 @@ st253:
 	if ( ++p == pe )
 		goto _test_eof253;
 case 253:
-#line 5797 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5807 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st254;
@@ -5838,7 +5848,7 @@ st521:
 	if ( ++p == pe )
 		goto _test_eof521;
 case 521:
-#line 5842 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5852 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st255;
 		case 35: goto tr566;
@@ -5939,7 +5949,7 @@ st522:
 	if ( ++p == pe )
 		goto _test_eof522;
 case 522:
-#line 5943 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5953 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 2: goto tr546;
 		case 33: goto tr578;
@@ -5977,7 +5987,7 @@ st523:
 	if ( ++p == pe )
 		goto _test_eof523;
 case 523:
-#line 5981 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 5991 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st523;
 		case 35: goto tr559;
@@ -6006,7 +6016,7 @@ st258:
 	if ( ++p == pe )
 		goto _test_eof258;
 case 258:
-#line 6010 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6020 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st259;
@@ -6037,7 +6047,7 @@ st524:
 	if ( ++p == pe )
 		goto _test_eof524;
 case 524:
-#line 6041 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6051 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st523;
 		case 35: goto tr559;
@@ -6444,7 +6454,7 @@ st538:
 	if ( ++p == pe )
 		goto _test_eof538;
 case 538:
-#line 6448 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6458 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st523;
 		case 35: goto tr559;
@@ -6478,7 +6488,7 @@ st539:
 	if ( ++p == pe )
 		goto _test_eof539;
 case 539:
-#line 6482 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6492 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st523;
 		case 35: goto tr559;
@@ -6512,7 +6522,7 @@ st540:
 	if ( ++p == pe )
 		goto _test_eof540;
 case 540:
-#line 6516 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6526 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st523;
 		case 35: goto tr559;
@@ -6578,7 +6588,7 @@ st260:
 	if ( ++p == pe )
 		goto _test_eof260;
 case 260:
-#line 6582 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 6592 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 58: goto st368;
 		case 118: goto st447;
@@ -9425,7 +9435,7 @@ st542:
 	if ( ++p == pe )
 		goto _test_eof542;
 case 542:
-#line 9429 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 9439 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st255;
 		case 35: goto tr570;
@@ -9460,7 +9470,7 @@ st543:
 	if ( ++p == pe )
 		goto _test_eof543;
 case 543:
-#line 9464 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 9474 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st520;
 		case 35: goto tr559;
@@ -9881,7 +9891,7 @@ st557:
 	if ( ++p == pe )
 		goto _test_eof557;
 case 557:
-#line 9885 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 9895 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st520;
 		case 35: goto tr559;
@@ -9916,7 +9926,7 @@ st558:
 	if ( ++p == pe )
 		goto _test_eof558;
 case 558:
-#line 9920 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 9930 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st520;
 		case 35: goto tr559;
@@ -9951,7 +9961,7 @@ st559:
 	if ( ++p == pe )
 		goto _test_eof559;
 case 559:
-#line 9955 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 9965 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	switch( (*p) ) {
 		case 33: goto st520;
 		case 35: goto tr559;
@@ -10639,19 +10649,20 @@ case 560:
 	case 513: 
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	break;
 	case 457: 
-#line 93 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 94 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetQuery(std::string(mark, p - mark));
         mark = NULL;
     }
 	break;
 	case 454: 
-#line 97 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 98 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetFragment(std::string(mark, p - mark));
         mark = NULL;
@@ -10660,7 +10671,7 @@ case 560:
 	case 456: 
 #line 16 "/root/work_space/crazy/src/crazy/uri.rl"
 	{ mark = p; }
-#line 93 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 94 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetQuery(std::string(mark, p - mark));
         mark = NULL;
@@ -10669,7 +10680,7 @@ case 560:
 	case 453: 
 #line 16 "/root/work_space/crazy/src/crazy/uri.rl"
 	{ mark = p; }
-#line 97 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 98 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
         uri->SetFragment(std::string(mark, p - mark));
         mark = NULL;
@@ -10711,7 +10722,8 @@ case 560:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	break;
@@ -10727,7 +10739,8 @@ case 560:
     }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	break;
@@ -10744,7 +10757,8 @@ case 560:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	break;
@@ -10801,18 +10815,19 @@ case 560:
 	{ mark = p; }
 #line 70 "/root/work_space/crazy/src/crazy/uri.rl"
 	{
-        uri->SetPath(std::string(mark, p - mark));
+        std::string path {mark, p - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 	break;
-#line 10809 "/root/work_space/crazy/src/crazy/uri.rl.cc"
+#line 10824 "/root/work_space/crazy/src/crazy/uri.rl.cc"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 129 "/root/work_space/crazy/src/crazy/uri.rl"
+#line 130 "/root/work_space/crazy/src/crazy/uri.rl"
     	if(cs == uri_parser_error) {
         	return nullptr;
     	} else if(cs >= uri_parser_first_final) {
@@ -10844,4 +10859,11 @@ void Uri::SetPath(const std::string& val) { m_path = val; }
 void Uri::SetQuery(const std::string& val) { m_query = val; }
 void Uri::SetFragment(const std::string& val) { m_fragment = val; }
 void Uri::SetPort(const int32_t val) { m_port = val; }
+Address::Ptr Uri::CreateAddress() const {
+	auto addr = Address::LookupAnyIPAddress(m_host);
+	if (addr) {
+		addr->SetPort(GetPort());
+	}
+	return addr;
+}
 }

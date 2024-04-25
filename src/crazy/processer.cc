@@ -1,5 +1,6 @@
 #include "processer.h"
 #include "scheduler.h"
+#include "hook.h"
 
 namespace crazy {
 
@@ -71,31 +72,27 @@ namespace crazy {
 		}
 		void Processer::Run(void* Ptr) {
 			try {
+				SetHookEnable(true);
 				CRAZY_ASSERT(Ptr);
 				t_processer = static_cast<Processer*>(Ptr);
 				Coroutine::GetThis();
 				while (t_processer->m_isRunning) {
-				
 					while(t_processer->m_runningTask.empty() && 
 						t_processer->m_waitingTask.empty()) {
 						t_processer->m_sem.Wait();
 					}
-
+					
+					Mutex::Guard guard(t_processer->m_mutex);
 					if (!t_processer->m_isRunning) {
-						CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "current processer status is stopping"
-							<< ", current running coroctine task count = "
-							<< t_processer->m_runningTask.size()
-							<< ", current waiting coroutine task count = "
-							<< t_processer->m_waitingTask.size();
 						break;
 					}
-					
+			
 					if (t_processer->m_runningTask.size() < t_processer->m_maxRunningTask &&
 						t_processer->m_waitingTask.size() > 0) {
 						for (auto it = t_processer->m_waitingTask.begin();
 								it != t_processer->m_waitingTask.end();) {
 							t_processer->m_runningTask.insert(*it);
-							t_processer->m_waitingTask.erase(it++);
+							it = t_processer->m_waitingTask.erase(it);
 							if (t_processer->m_runningTask.size() >= 
 									t_processer->m_maxRunningTask) {
 								break;
@@ -105,17 +102,19 @@ namespace crazy {
 
 					for (auto it = t_processer->m_runningTask.begin(); 
 							it != t_processer->m_runningTask.end();) {
-						CRAZY_INFO(CRAZY_ROOT_LOGGER()) << " ";
+						if ((*it)->coroctine->GetCoroutineStatus() == CoroutineStatus::Hold) {
+							++it;
+							continue;
+						}
 						(*it)->coroctine->SwapIn();
 						if ((*it)->coroctine->GetCoroutineStatus()
 								== CoroutineStatus::Suspend) {
 							it = t_processer->m_runningTask.erase(it);
-							continue;
+							break;
 						}
 						++it;
 					}
 				}
-
 			} catch (std::exception& e) {
 				CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "Processer::Run() exception: "
 					<< e.what() << " current running coroctine tasks count =  "

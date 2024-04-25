@@ -36,8 +36,8 @@ namespace crazy {
 	struct AsyncEvent : public std::enable_shared_from_this<AsyncEvent>
 			    , Noncopyable {
 		using Ptr = std::shared_ptr<AsyncEvent>;
-		Socket::Ptr sock;
-		Mutex m_mutex;
+		Mutex mutex;
+		int32_t fd;
 		SelectEvent event = SelectEvent::None;
 		std::function<void ()> in, out; 
 	};
@@ -52,10 +52,10 @@ namespace crazy {
 		std::map<int32_t, AsyncEvent::Ptr> Steal(size_t count);
 		std::map<int32_t, AsyncEvent::Ptr> StealAll();
 		size_t GetAsyncEventCount() const;
-		virtual void RegisterEvent(Socket::Ptr sock, SelectEvent events
+		virtual void RegisterEvent(int32_t fd, SelectEvent events
 				, std::function<void ()>&& cb);	
-		virtual void UnregisterEvent(Socket::Ptr sock, SelectEvent events);
-		virtual void CancelAllEvent(Socket::Ptr sock);
+		virtual void UnregisterEvent(int32_t fd, SelectEvent events);
+		virtual void CancelAllEvent(int32_t fd);
 		virtual void Tickle();
 		virtual void AddTimer(uint64_t ms, std::function<void ()> cb, bool recurring = false);
 		bool IsStopping() const;

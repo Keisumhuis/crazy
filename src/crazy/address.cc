@@ -41,13 +41,13 @@ bool Address::Lookup(std::vector<Address::Ptr>& result, const std::string& host,
             		int32_t family, int32_t type, int32_t protocol) {
 	addrinfo hints, *results, *next;
 	hints.ai_flags = 0;
-    	hints.ai_family = family;
-    	hints.ai_socktype = type;
-    	hints.ai_protocol = protocol;
-    	hints.ai_addrlen = 0;
-    	hints.ai_canonname = nullptr;
-    	hints.ai_addr = nullptr;
-    	hints.ai_next = nullptr;
+    hints.ai_family = family;
+    hints.ai_socktype = type;
+    hints.ai_protocol = protocol;
+    hints.ai_addrlen = 0;
+    hints.ai_canonname = nullptr;
+    hints.ai_addr = nullptr;
+    hints.ai_next = nullptr;
 	
 	std::string node;
 	const char* service = nullptr;
@@ -73,24 +73,24 @@ bool Address::Lookup(std::vector<Address::Ptr>& result, const std::string& host,
         }
 	
 	if (node.empty()) {
-        	node = host;
-    	}
-    	auto error = getaddrinfo(node.c_str(), service, &hints, &results);
-    	if (error) {
-		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "Address::Lookup getaddress(" << host << ", "
-            		<< family << ", " << type << ") err=" << error << " errstr="
-            		<< gai_strerror(error);
-    		return false;
+        node = host;
+    }
+    auto error = getaddrinfo(node.c_str(), service, &hints, &results);
+    if (error) {
+	CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "Address::Lookup getaddress(" << host << ", "
+            	<< family << ", " << type << ") err=" << error << " errstr="
+            	<< gai_strerror(error);
+    	return false;
 	}
 
 	next = results;
-    	while (next) {
-        	result.push_back(Create(next->ai_addr, (socklen_t)next->ai_addrlen));
-        	next = next->ai_next;
-    	}
+    while (next) {
+        result.push_back(Create(next->ai_addr, (socklen_t)next->ai_addrlen));
+        next = next->ai_next;
+    }
 
-    	freeaddrinfo(results);
-    	return !result.empty();
+    freeaddrinfo(results);
+    return !result.empty();
 }
 Address::Ptr Address::LookupAny(const std::string& host,
             		int32_t family, int32_t type, int32_t protocol) {
@@ -103,15 +103,15 @@ Address::Ptr Address::LookupAny(const std::string& host,
 std::shared_ptr<IPAddress> Address::LookupAnyIPAddress(const std::string& host,
             		int32_t family, int32_t type, int32_t protocol) {
 	std::vector<Address::Ptr> result;
-    	if (Lookup(result, host, family, type, protocol)) {
-        	for (auto& i : result) {
-            		IPAddress::Ptr v = std::dynamic_pointer_cast<IPAddress>(i);
-            		if (v) {
-                		return v;
-            		}
-        	}
-    	}
-    	return nullptr;
+    if (Lookup(result, host, family, type, protocol)) {
+        for (auto& i : result) {
+            	IPAddress::Ptr v = std::dynamic_pointer_cast<IPAddress>(i);
+            	if (v) {
+                	return v;
+            	}
+        }
+    }
+    return nullptr;
 }
 bool Address::GetInterfaceAddresses(std::map<std::string
                     	,std::pair<Address::Ptr, uint32_t> >& result, int32_t family) {
@@ -191,7 +191,7 @@ int32_t Address::GetFamily() const {
 IPv4Address::IPv4Address() {
 }
 IPv4Address::IPv4Address(const sockaddr_in& address) {
-	m_addr = m_addr;
+	m_addr = address;
 }
 IPv4Address::IPv4Address(const std::string& address, uint16_t port) {
 	memset(&m_addr, 0, sizeof(m_addr));
@@ -228,10 +228,10 @@ IPAddress::Ptr IPv4Address::SubnetMask(const uint32_t prefix_len) {
 	subnet.sin_addr.s_addr = ~ByteSwapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
 	return IPv4Address::Ptr(new IPv4Address(subnet));
 }
-uint32_t IPv4Address::GetPort() const {
-	return ByteSwapOnBigEndian(m_addr.sin_port);
+uint16_t IPv4Address::GetPort() const {
+	return ByteSwapOnLittleEndian(m_addr.sin_port);
 }
-void IPv4Address::SetPort(const uint32_t port) {
+void IPv4Address::SetPort(const uint16_t port) {
 	m_addr.sin_port = ByteSwapOnLittleEndian(port);
 }
 std::string IPv4Address::ToString() {
@@ -287,10 +287,10 @@ IPAddress::Ptr IPv6Address::SubnetMask(const uint32_t prefix_len) {
 	}
 	return IPv6Address::Ptr(new IPv6Address(subnet));
 }
-uint32_t IPv6Address::GetPort() const {
-	return ByteSwapOnBigEndian(m_addr.sin6_port);
+uint16_t IPv6Address::GetPort() const {
+	return ByteSwapOnLittleEndian(m_addr.sin6_port);
 }
-void IPv6Address::SetPort(const uint32_t port) {
+void IPv6Address::SetPort(const uint16_t port) {
 	m_addr.sin6_port = ByteSwapOnLittleEndian(port);
 }
 std::string IPv6Address::ToString() {

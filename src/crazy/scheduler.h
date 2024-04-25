@@ -17,8 +17,10 @@
 #include <vector>
 
 #include "config.h"
+#include "mutex.h"
 #include "noncopyable.h"
 #include "processer.h"
+#include "selector.h"
 #include "singleton.h"
 
 #define SCHEDULER() crazy::SingletonPtr<crazy::Scheduler>().GetInstance() 
@@ -43,6 +45,7 @@ namespace crazy {
 		void LoadBalance();
 	private:
 		size_t m_processerCount = 0;
+		Mutex m_mutex;
 		std::vector<Processer::Ptr> m_processers;
 		std::vector<CoroutineTask::Ptr> m_taskBuffer;
 	}; 

@@ -9,7 +9,10 @@ static ConfigValue<uint64_t>::Ptr g_http_response_buffer_size =
 static ConfigValue<uint64_t>::Ptr g_http_response_max_body_size =
     	Config::Lookup("http.response.max_body_size"
                 ,(uint64_t)(64 * 1024 * 1024), "http response max body size");
-
+std::string Response::GetHeader(const std::string& key, const std::string& def) {
+	auto rt = m_headers.find(key);
+	return rt == m_headers.end() ? def : rt->second;
+}
 void Response::SetHeader(const std::string& key, const std::string& val) {
 	m_headers[key] = val;
 }
@@ -22,8 +25,37 @@ void Response::SetCookie(const std::string& key, const std::string& val) {
 void Response::DelCookie(const std::string& key) {
 	m_cookies.erase(key);
 }
-std::ostream& Response::dump(std::ostream& os) const {
+std::ostream& Response::Dump(std::ostream& os) const {
+	os << m_version
+		<< " "
+		<< static_cast<int32_t>(m_status)
+		<< " "
+		<< (m_reason.empty() ? HttpStatusToString(m_status) : m_reason)
+		<< "\r\n";
+
+		for (auto& it : m_headers) {
+			if ((!m_isWebsocket && strcasecmp(it.first.c_str(), "connection") == 0) || 
+				(strcasecmp(it.first.c_str(), "content-length") == 0)) {
+				continue;
+			}
+			os << it.first << ": " << it.second << "\r\n";
+		}
+		if (!m_isWebsocket) {
+			os << "connection: " << (m_isKeepALive ? "keep-alive" : "close") << "\r\n";
+		}
+		// cookie
+		if (!m_body.empty()) {
+			os << "content-length: " << m_body.size() << "\r\n\r\n"
+				<< m_body;
+		} else {
+			os << "\r\n";
+		} 
     return os;
+}
+std::string Response::ToString() const {
+	std::stringstream ss;
+	Dump(ss);
+	return ss.str();
 }
 void on_response_reason(void *data, const char *at, size_t length) {
     ResponseParser* parser = static_cast<ResponseParser*>(data);
@@ -45,6 +77,8 @@ void on_response_version(void *data, const char *at, size_t length) {
 }
 
 void on_response_header_done(void *data, const char *at, size_t length) {
+	ResponseParser* parser = static_cast<ResponseParser*>(data);
+    parser->GetData()->SetBody(std::string{at, length});
 }
 
 void on_response_last_chunk(void *data, const char *at, size_t length) {
@@ -77,8 +111,8 @@ size_t ResponseParser::Execute(char* data, size_t len, bool chunck) {
 	if (chunck) {
 		httpclient_parser_init(&m_parser);
 	}
-	size_t offset = httpclient_parser_execute(&m_parser, data, len, 0);
-	memmove(data, data + offset, (len - offset));
+	auto offset = httpclient_parser_execute(&m_parser, data, len, 0);
+	memmove((char*)data, data + offset, (len - offset));
 	return offset;
 }
 int32_t ResponseParser::IsFinished() {

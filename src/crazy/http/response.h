@@ -37,8 +37,8 @@ namespace crazy::http {
 		void SetBody(const std::string& val) { m_body = val; }
 		void SetReason(const std::string& val) { m_reason = val; }
 		void SetHeaders(const MapType& val) { m_headers = val; }
-		void SetKeepALive(const bool& val) { m_isKeepALive = val; }
-		void SetWebsocket(const bool& val) { m_isWebsocket = val; }
+		void SetKeepALive(const bool val) { m_isKeepALive = val; }
+		void SetWebsocket(const bool val) { m_isWebsocket = val; }
 
 		bool IsKeepALive() const { return m_isKeepALive; }
 		bool IsWebsocket() const { return m_isWebsocket; }
@@ -65,10 +65,11 @@ namespace crazy::http {
     	type getCookieAs(const std::string& key, const type& def = type{}) {
         	return getAs(m_cookies, key, def);
     	}
-		std::ostream& dump(std::ostream& os) const;
+		std::ostream& Dump(std::ostream& os) const;
+		std::string ToString() const;
 	private:
-		HttpStatus m_status;
-		std::string m_version;
+		HttpStatus m_status = HttpStatus::OK;
+		std::string m_version = "HTTP/1.1";
 		bool m_isKeepALive;
 		bool m_isWebsocket;
 		std::string m_body;
@@ -81,14 +82,13 @@ namespace crazy::http {
 	public:
 		using Ptr = std::shared_ptr<ResponseParser>;
 		ResponseParser();
-		size_t Execute(char* data, size_t len, bool chunck);
+		size_t Execute(char* data, size_t len, bool chunck = false);
 		int32_t IsFinished();
 		int32_t HasError();
 		Response::Ptr GetData() const { return m_data; };
 		void SetError(int32_t error) { m_error = error; }
 		uint64_t GetContentLength();
 		const httpclient_parser& GetParser() const { return m_parser; }
-	protected:
 		static uint64_t GetHttpResponseBufferSize();
 		static uint64_t GetHttpResponseMaxBodySize();
 	private:

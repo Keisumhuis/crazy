@@ -205,7 +205,7 @@ int httpclient_parser_execute(httpclient_parser *parser, const char *buffer, siz
 
     if(parser->body_start) {
         /* final \r\n combo encountered so stop right here */
-        parser->nread++;
+        parser->nread;
     }
 
     return(parser->nread);

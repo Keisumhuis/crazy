@@ -20,6 +20,7 @@
 #include "crazy/util.h"
 #include "http11.h"
 #include "http11_parser.h"
+#include "response.h"
 
 namespace crazy::http {
 
@@ -60,8 +61,9 @@ namespace crazy::http {
 		void DelCookie(const std::string& val);
 		bool HasHeader(const std::string& key, std::string& val);
 		bool HasParam(const std::string& key, std::string& val);
-		bool HasCookie(const std::string& key, std::string& val);
-		
+		bool HasCookie(const std::string& key, std::string& val);		
+		std::string GetHeader(const std::string& key, const std::string& def = "");
+
 		template <typename type>
 		bool CheckGetHeaderAs(const std::string& key, type& val, const type& def = type{}) {
 			return CheckGetAs(m_headers, key, val, def);
@@ -82,10 +84,12 @@ namespace crazy::http {
 		template <typename type>
 		type GetCookiesAs(const std::string& key, const type& def = type{}) {
 		}
-		std::ostream& dump(std::ostream& os) const;
+		std::ostream& Dump(std::ostream& os) const;
+		std::string ToString() const;
+		Response::Ptr GetResponse();
 	private:
 		HttpMethod m_method;
-		std::string m_version;
+		std::string m_version = "HTTP/1.1";
 		bool m_isKeepALive;
 		bool m_isWebsocket;
 		
@@ -109,7 +113,6 @@ namespace crazy::http {
 		void SetError(int32_t error) { m_error = error; }
 		uint64_t GetContentLength();
 		const http_parser& GetParser() const { return m_parser; }
-	protected:
 		static uint64_t GetHttpRequestBufferSize();
 		static uint64_t GetHttpRequestMaxBodySize();	
 	private:

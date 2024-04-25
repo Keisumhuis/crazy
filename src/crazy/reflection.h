@@ -201,11 +201,11 @@ template<typename> struct members_reflection {};
 		static void from_byte_array(crazy::byte_array::Deserialize& deserialize, STRUCT_NAME& value) {		\
 			MAKE_ARG_LIST(N, BYTE_ARRAY_DESERIALIZS_CONCAT, __VA_ARGS__);					\
 		}													\
-		static void to_json(crazy::json::Serialize& _serialize ,const STRUCT_NAME& cls) { \
-			MAKE_ARG_LIST(N, RAPIDJSON_SERIALIZS_CONCAT, __VA_ARGS__);	\
-		}																			\
-		static void from_json(crazy::json::Value _deserializeValue, STRUCT_NAME& cls) {\
-			MAKE_ARG_LIST(N, RAPIDJSON_DESERIALIZS_CONCAT, __VA_ARGS__);	\
+		static void to_json(crazy::json::Serialize& _serialize ,const STRUCT_NAME& cls) { 			\
+			MAKE_ARG_LIST(N, RAPIDJSON_SERIALIZS_CONCAT, __VA_ARGS__);					\
+		}													\
+		static void from_json(crazy::json::Value _deserializeValue, STRUCT_NAME& cls) {				\
+			MAKE_ARG_LIST(N, RAPIDJSON_DESERIALIZS_CONCAT, __VA_ARGS__);					\
 		}													\
 	};														\
 															\
@@ -240,7 +240,7 @@ template<typename> struct members_reflection {};
 		};													\
 	}
 
-#define EMMBED_TUPLE(STRUCT_NAME, N, ...) 						\
+#define EMMBED_TUPLE(STRUCT_NAME, N, ...) 										\
 MAKE_TUPLE(STRUCT_NAME, N, __VA_ARGS__)
 
 #define REFLECTION(STRUCT_NAME, ...) EMMBED_TUPLE(STRUCT_NAME, GET_ARG_COUNT(__VA_ARGS__), __VA_ARGS__)

@@ -68,7 +68,8 @@ namespace crazy {
     }
 
     action save_path {
-        uri->SetPath(std::string(mark, fpc - mark));
+        std::string path {mark, fpc - mark};
+        uri->SetPath(path.empty() ? "/" : path);
         mark = NULL;
     }
 
@@ -157,4 +158,11 @@ void Uri::SetPath(const std::string& val) { m_path = val; }
 void Uri::SetQuery(const std::string& val) { m_query = val; }
 void Uri::SetFragment(const std::string& val) { m_fragment = val; }
 void Uri::SetPort(const int32_t val) { m_port = val; }
+Address::Ptr Uri::CreateAddress() const {
+	auto addr = Address::LookupAnyIPAddress(m_host);
+	if (addr) {
+		addr->SetPort(GetPort());
+	}
+	return addr;
+}
 }

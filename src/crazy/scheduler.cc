@@ -8,6 +8,7 @@ namespace crazy {
 			, "processer size in scheduler");
 
 	Scheduler::Scheduler() {
+		Coroutine::GetThis();
 		SetProcesserSize(std::thread::hardware_concurrency());
 		Start();
 	}
@@ -47,6 +48,7 @@ namespace crazy {
 		return count;
 	}
 	void Scheduler::AddTask(CoroutineTask::Ptr task) {
+		MutexGuard guard(m_mutex);
 		CRAZY_ASSERT(m_processers.size() > 0);
 		std::sort(m_processers.begin(), m_processers.end(), ProcesserCompare());		
 		m_processers[0]->AddTask(task);

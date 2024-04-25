@@ -45,8 +45,16 @@ namespace crazy::byte_array {
 			write_value(value);
 		}
 		template <typename type>
-		std::string serialize(const type& value) {
+		std::string serialize(type& value) {
 			write_value(value);
+			return _buffer_string;
+		}
+		template <typename type>
+		Serialize& operator<< (const type& value) {
+			write_value(value);
+			return *this;
+		} 
+		std::string serialize() {
 			return _buffer_string;
 		}
 	protected:
@@ -223,6 +231,14 @@ namespace crazy::byte_array {
 	class Deserialize final {
 		friend class Converter;
 	public:
+		Deserialize() 
+			: _pos (0) {}
+		Deserialize(const std::string& data) 
+			: _buffer_string (data) 
+			, _pos (0) {}
+		Deserialize(const char* data, size_t len) 
+			: _buffer_string (std::string{data, len}) 
+			, _pos (0) {}
 		template <typename type>
 		void get_from(type& value) {
 			get_value(value);
@@ -234,6 +250,21 @@ namespace crazy::byte_array {
 			type value;
 			get_value(value);
 			return value;
+		}
+		template <typename type>
+		Deserialize& operator >> (type& value) {
+			get_from(value);
+			return *this;
+		}
+		template<typename Tuple, size_t Id>
+		void getv(Deserialize& ds, Tuple& t) {
+			ds >> std::get<Id>(t);
+		}
+		template<typename Tuple, size_t... I>
+		Tuple get_tuple(std::index_sequence<I...>) {
+			Tuple t;
+			std::initializer_list<int>{((getv<Tuple, I>(*this, t)), 0)...};
+			return t;
 		}
 	protected:
 		template <typename type

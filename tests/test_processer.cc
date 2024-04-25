@@ -7,7 +7,7 @@
 void test_coroutine() {
 	for (size_t i = 0; i < 5; ++i) {
 		CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "coroutinei run count : " << ++i;
-		crazy::Coroutine::Yield();
+		crazy::Coroutine::YieldToReady();
 	}
 }
 

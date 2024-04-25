@@ -7,7 +7,7 @@
 void RunInCoroutine() {
 	for (size_t i = 0; i < 5; ++i) {
 		CRAZY_DEBUG(CRAZY_ROOT_LOGGER()) << "run in coroutine begin";
-		crazy::Coroutine::Yield();
+		crazy::Coroutine::YieldToReady();
 	}
 }
 

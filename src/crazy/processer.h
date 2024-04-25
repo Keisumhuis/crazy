@@ -56,7 +56,7 @@ namespace crazy {
 		std::set<CoroutineTask::Ptr>& GetWaitingTasks();
 	private:
 		int32_t m_thread_id;
-		std::atomic<bool> m_isRunning = false;
+		std::atomic<bool> m_isRunning;
 		Mutex m_mutex;
 		Semaphore m_sem;
 		uint32_t m_maxRunningTask = 0;

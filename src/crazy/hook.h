@@ -14,6 +14,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
@@ -28,7 +29,7 @@ namespace crazy {
 }
 
 extern "C" {
-
+	
 	//sleep
 	typedef unsigned int (*sleep_fun)(unsigned int seconds);
 	extern sleep_fun sleep_f;
@@ -96,7 +97,6 @@ extern "C" {
 
 	typedef int (*setsockopt_fun)(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
 	extern setsockopt_fun setsockopt_f;
-
 }
 
 #endif // ! ____CRAZY_HOOK_H____

@@ -7,6 +7,9 @@
 
 namespace crazy {
 
+static ConfigValue<size_t>::Ptr g_sock_recv_buffer_size = Config::Lookup("tcp_server.sock_recv_buffer_size"
+	, (size_t) 1024 * 1014 * 5, "sock recv buffer max size");
+
 TcpServer::TcpServer() 
 	: m_ssl (false)
 	, m_stopping (true)
@@ -68,14 +71,14 @@ bool TcpServer::LoadCertificates(const std::string& cert_file, const std::string
 bool TcpServer::Start() {
 	m_stopping = false;
 	for (auto& it : m_socks) {
-		SELECTOR().RegisterEvent(it, SelectEvent::Read, std::bind(&TcpServer::OnAccept, shared_from_this(), it));
+		SELECTOR().RegisterEvent(it->GetSocket(), SelectEvent::Read, std::bind(&TcpServer::OnAccept, shared_from_this(), it));
 	}
 	return true;
 }
 bool TcpServer::Stop() {
 	m_stopping = true;
 	for (auto& it : m_socks) {
-		SELECTOR().CancelAllEvent(it);
+		SELECTOR().CancelAllEvent(it->GetSocket());
 	}
 	return true;
 }
@@ -91,16 +94,16 @@ std::string TcpServer::GetName() const {
 void TcpServer::SetName(const std::string& name) {
 	m_name = name;
 }
-void TcpServer::OnClient(Socket::Ptr sock) {
-	CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "on client: " << sock->GetRemoteAddress()->ToString();
+void TcpServer::HandleClient(Socket::Ptr sock) {
+	CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "HandleClient, GetRemoteAddress = " << sock->GetRemoteAddress()->ToString(); 
 }
 void TcpServer::OnAccept(Socket::Ptr sock) {
 	auto client = sock->Accept();
 	if (client) {
-		CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "new client connected, sock = " << client->GetSocket()
-			<< " local address : " << client->GetLocalAddress()->ToString()
-			<< " remote address : " << client->GetRemoteAddress()->ToString();
-			SELECTOR().RegisterEvent(client, SelectEvent::Read, std::bind(&TcpServer::OnClient, shared_from_this(), client));
+		// CRAZY_INFO(CRAZY_ROOT_LOGGER()) << "new client connected, sock = " << client->GetSocket()
+		// 	<< " local address : " << client->GetLocalAddress()->ToString()
+		// 	<< " remote address : " << client->GetRemoteAddress()->ToString();
+		SCHEDULER()->AddTask(std::bind(&TcpServer::HandleClient, shared_from_this(), client));
 	} else {
 		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "accept error, errno = " << errno
 			<< " errstr = " << strerror(errno);

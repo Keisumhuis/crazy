@@ -23,7 +23,7 @@
 namespace crazy {
 
 	enum class CoroutineStatus {
-		Init, Ready, Running, Suspend
+		Init, Ready, Hold, Running, Suspend
 	};
 
 	class Coroutine : public std::enable_shared_from_this<Coroutine>{
@@ -37,20 +37,23 @@ namespace crazy {
 		void SwapOut();
 		void SwapIn();
 		CoroutineStatus GetCoroutineStatus();
+		void SetCoroutineStatus(CoroutineStatus status);
+		uint64_t GetId();
 	public:		
 		static uint64_t GetCoroutineId();
-		static void Yield();
+		static void YieldToReady();
+		static void YieldToHold();
 		static void Resume();
 		static void SetThis(Coroutine* coroutine);
 		static Coroutine::Ptr GetThis();
 		static void MasterCoroutine();
 	private:
 		ucontext_t m_ctx;
-		int32_t m_coroutineId = 0;
+		int32_t m_coroutineId;
 		std::function<void()> m_cb;
 		size_t m_stackSize = 0;
 		void* m_pStack = nullptr;
-		CoroutineStatus m_status = CoroutineStatus::Init;
+		CoroutineStatus m_status = CoroutineStatus::Ready;
 	};
 }
 

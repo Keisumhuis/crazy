@@ -17,7 +17,7 @@ Selector::Selector() {
 
 	epoll_event event;
 	memset(&event, 0, sizeof(event));
-	event.events = EPOLLIN | EPOLLET;
+	event.events = EPOLLIN;
 	event.data.fd = m_pipe[0];
 
 	rt = fcntl(m_pipe[0], F_SETFL, O_NONBLOCK);
@@ -62,7 +62,7 @@ std::map<int32_t, AsyncEvent::Ptr> Selector::Steal(size_t count) {
 std::map<int32_t, AsyncEvent::Ptr> Selector::StealAll() {
 	Mutex::Guard guard(m_mutex);
 	for (auto& [key, val] : m_events) {
-		CancelAllEvent(val->sock);
+		CancelAllEvent(key);
 	}
 	m_events.clear();
 	return m_events;
@@ -73,17 +73,17 @@ size_t Selector::GetAsyncEventCount() const {
 std::map<int32_t, AsyncEvent::Ptr>& Selector::GetEvents() {
 	return m_events;
 }
-void Selector::RegisterEvent(Socket::Ptr sock, SelectEvent events
+void Selector::RegisterEvent(int32_t fd, SelectEvent events
 		, std::function<void ()>&& cb) {
 	Mutex::Guard gurad(m_mutex);
 	AsyncEvent::Ptr ctx;
-	auto it = m_events.find(sock->GetSocket());
+	auto it = m_events.find(fd);
 	if (m_events.end() != it) {
 		ctx = it->second;
 	} else {
 		ctx = std::make_shared<AsyncEvent>();
 	}
-	ctx->sock = sock;
+	ctx->fd = fd;
 	
 	if (static_cast<int32_t>(SelectEvent::Read) & static_cast<int32_t>(events)) {
 		ctx->in.swap(cb);
@@ -91,23 +91,25 @@ void Selector::RegisterEvent(Socket::Ptr sock, SelectEvent events
 	if (static_cast<int32_t>(SelectEvent::Write) & static_cast<int32_t>(events)) {
 		ctx->out.swap(cb);
 	}
-	m_events[sock->GetSocket()] = ctx;
+	m_events[fd] = ctx;
 	
 	int32_t op = ctx->event == SelectEvent::None ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 	epoll_event event;
-	event.events = EPOLLET | static_cast<int32_t>(ctx->event) | static_cast<int32_t>(events);
+	event.events = static_cast<int32_t>(ctx->event) | static_cast<int32_t>(events);
 	event.data.ptr = ctx.get();
+	ctx->event = static_cast<SelectEvent>(static_cast<int32_t>(ctx->event) | static_cast<int32_t>(events));
 
-	auto rt = epoll_ctl(m_fd, op, sock->GetSocket(), &event);
+	auto rt = epoll_ctl(m_fd, op, fd, &event);
 	if (rt) {
-		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << op << ", " << sock->GetSocket() << "), "
+		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << op << ", " << fd << "), "
 			<< " rt = " << rt << " errno = " << errno << " errstr = " << strerror(errno);
 	}
+	Tickle();
 }
-void Selector::UnregisterEvent(Socket::Ptr sock, SelectEvent events) {
+void Selector::UnregisterEvent(int32_t fd, SelectEvent events) {
 	Mutex::Guard gurad(m_mutex);
 	AsyncEvent::Ptr ctx;
-	auto it = m_events.find(sock->GetSocket());
+	auto it = m_events.find(fd);
 	if (m_events.end() == it) {
 		return ;
 	}
@@ -119,34 +121,36 @@ void Selector::UnregisterEvent(Socket::Ptr sock, SelectEvent events) {
 	SelectEvent newEvent = static_cast<SelectEvent>(static_cast<int32_t>(ctx->event) & ~static_cast<int32_t>(events));
 	int32_t op = newEvent == SelectEvent::None ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
 	epoll_event event;
-	event.events = EPOLLET | static_cast<int32_t>(newEvent);
+	event.events = static_cast<int32_t>(newEvent);
 	event.data.ptr = ctx.get();
 
-	auto rt = epoll_ctl(m_fd, op, sock->GetSocket(), &event);
+	auto rt = epoll_ctl(m_fd, op, fd, &event);
 	if (rt) {
-		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << op << ", " << sock->GetSocket() << "), "
+		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << op << ", " << fd << "), "
 			<< " rt = " << rt << " errno = " << errno << " errstr = " << strerror(errno);
 	}
+	Tickle();
 }
-void Selector::CancelAllEvent(Socket::Ptr sock) {
+void Selector::CancelAllEvent(int32_t fd) {
 	Mutex::Guard guard(m_mutex);
 	AsyncEvent::Ptr ctx;
-	auto it = m_events.find(sock->GetSocket());
+	auto it = m_events.find(fd);
 	if (m_events.end() == it) {
 		return;
 	}
 	
 	epoll_event event;
-	event.events = 0;
+	event.events = static_cast<int32_t>(it->second->event);
 	event.data.ptr = it->second.get();
 
-	auto rt = epoll_ctl(m_fd, EPOLL_CTL_DEL, sock->GetSocket(), &event);
+	auto rt = epoll_ctl(m_fd, EPOLL_CTL_DEL, fd, &event);
 	if (rt) {
-		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << EPOLL_CTL_DEL << ", " << sock->GetSocket() << "), "
+		CRAZY_ERROR(CRAZY_ROOT_LOGGER()) << "epoll_ctl(" << m_fd << ", " << EPOLL_CTL_DEL << ", " << fd << "), "
 			<< " rt = " << rt << " errno = " << errno << " errstr = " << strerror(errno);
 	}
 
-	m_events.erase(sock->GetSocket());
+	m_events.erase(fd);
+	Tickle();
 }
 void Selector::Tickle() {
 	auto rt = write(m_pipe[1], "T", 1);
@@ -196,14 +200,14 @@ void Selector::Run() {
 				}
 
 				auto asyncEvent = (AsyncEvent*)event.data.ptr;		
-				auto it = m_events.find(asyncEvent->sock->GetSocket());
+				auto it = m_events.find(asyncEvent->fd);
 				if (it != m_events.end()) {
 					if (event.events & EPOLLIN) {
-						Mutex::Guard guard(m_mutex);
+						Mutex::Guard guard(it->second->mutex);
 						(it->second->in)();
 					}
 					if (event.events & EPOLLOUT) {
-						Mutex::Guard guard(m_mutex);
+						Mutex::Guard guard(it->second->mutex);
 						(it->second->out)();
 					}
 				}

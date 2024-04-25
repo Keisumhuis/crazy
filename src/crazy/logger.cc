@@ -33,6 +33,21 @@ const std::string GetLoggerLevelString(const LoggerLevel& level) {
 	}
 }
 
+void LoggerEvent::Format(const char* fmt, ...) {
+	va_list al;
+    va_start(al, fmt);
+    Format(fmt, al);
+    va_end(al);
+}
+void LoggerEvent::Format(const char* fmt, va_list al) {
+	char* buf = nullptr;
+    int len = vasprintf(&buf, fmt, al);
+    if(len != -1) {
+        m_ss << std::string{buf, len};
+        free(buf);
+    }
+}
+
 void PercentSignFormatItem::Format(std::stringstream& ss,  std::shared_ptr<Logger> logger
 		, const LoggerEvent::Ptr event) {
 	ss << "%";

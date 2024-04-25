@@ -39,7 +39,7 @@ namespace crazy {
 		std::set<Socket::Ptr> GetSockets() const;
 		std::string GetName() const;
 		void SetName(const std::string& name);
-		virtual void OnClient(Socket::Ptr sock);
+		virtual void HandleClient(Socket::Ptr sock);
 		virtual void OnAccept(Socket::Ptr sock);
 	private:
 		std::set<Socket::Ptr> m_socks;

@@ -22,5 +22,15 @@ int main () {
 	for (auto& it : person2.vec) {
 		CRAZY_DEBUG(CRAZY_ROOT_LOGGER()) << it;
 	}
+	crazy::byte_array::Serialize serialize;
+	serialize << int32_t(123) << int32_t(3423423) << std::string("asdashdahsjkdhakjsdhjk") << person1;
+	auto str = serialize.serialize();
+	crazy::byte_array::Deserialize deserialize(str);
+	int32_t _1;
+	int32_t _2;
+	std::string _3;
+	Person person3;
+	deserialize >> _1 >> _2 >> _3 >> person3;
+	CRAZY_DEBUG(CRAZY_ROOT_LOGGER()) << _1 << " " << _2 << " " << _3 << " " << person3.name << " " << person3.age;
 	return 0;
 }

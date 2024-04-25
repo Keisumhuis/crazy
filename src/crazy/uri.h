@@ -14,6 +14,9 @@
 #include <memory>
 #include <string>
 
+#include "address.h"
+#include "logger.h"
+
 namespace crazy {
 	/*
 	     foo://user@sylar.com:8042/over/there?name=ferret#nose
@@ -39,6 +42,7 @@ namespace crazy {
 		void SetQuery(const std::string& val);
 		void SetFragment(const std::string& val);
 		void SetPort(const int32_t val);
+		Address::Ptr CreateAddress() const;
 	private:
 		std::string m_scheme;
 		std::string m_userinfo;
@@ -46,7 +50,7 @@ namespace crazy {
 		std::string m_path;
 		std::string m_query;
 		std::string m_fragment;
-		int32_t m_port;
+		int32_t m_port = 0;
 	};
 
 }

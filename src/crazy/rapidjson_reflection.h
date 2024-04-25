@@ -38,13 +38,13 @@ namespace crazy::json {
     public:
 
     	template<typename type>
-    	constexpr void add_from(const char* key, const type& value) {
+    	void add_from(const char* key, const type& value) {
     		set_key(key);
     		write_value(value);
     	}
 
     	template<typename type>
-    	constexpr void add_from(const char* key, const std::optional<type>& value) {
+    	void add_from(const char* key, const std::optional<type>& value) {
     		if (value.has_value()) {
     			set_key(key);
     			write_value<type>(value.value());
@@ -67,7 +67,7 @@ namespace crazy::json {
 
     	template <typename type, std::enable_if_t<std::is_same_v<type, bool>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Bool(value);
     	}
 
@@ -75,7 +75,7 @@ namespace crazy::json {
     		std::is_same_v<type, int16_t> ||
     		std::is_same_v<type, int8_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Int(value);
     	}
 
@@ -83,52 +83,52 @@ namespace crazy::json {
     		std::is_same_v<type, uint16_t> ||
     		std::is_same_v<type, uint8_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Uint(value);
     	}
 
     	template <typename type, std::enable_if_t<std::is_same_v<type, int64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Int64(value);
     	}
 
     	template <typename type, std::enable_if_t<std::is_same_v<type, uint64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Uint64(value);
     	}
 
-    	template <typename type, std::enable_if_t<std::is_same_v<type, float_t> ||
-    		std::is_same_v<type, double_t>, int32_t> = 0>
+    	template <typename type, std::enable_if_t<std::is_same_v<type, float> ||
+    		std::is_same_v<type, double>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Double(value);
     	}
 
     	template <typename type, std::enable_if_t<std::is_same_v<type, std::string>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.String(value.c_str());
     	}
 
     	template <typename type, std::enable_if_t<std::is_same_v<type, char*> ||
     		std::is_same_v<type, const char*>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.String(value);
     	}
 
     	template <typename type, std::enable_if_t<std::is_enum_v<type>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.Int64((int64_t)value);
     	}
 
     	template <typename type, size_t N, template<typename, size_t> class wrapper = std::array,
     		std::enable_if_t<std::is_same_v<wrapper<type, N>, std::array<type, N>> == true, void> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const wrapper<type, N>& value) -> void {
+    	auto write_value(const wrapper<type, N>& value) -> void {
     		_string_buffer_writer.StartArray();
     		for (auto& object : value) {
     			add_from(nullptr, value);
@@ -138,7 +138,7 @@ namespace crazy::json {
 
     	template <typename type, size_t N>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type(&value)[N]) -> void {
+    	auto write_value(const type(&value)[N]) -> void {
     		_string_buffer_writer.StartArray();
     		for (auto& object : value) {
     			add_from(nullptr, value);
@@ -151,7 +151,7 @@ namespace crazy::json {
     		std::is_same_v<wrapper<type, _alloc>, std::list<type, _alloc>> ||
     		std::is_same_v<wrapper<type, _alloc>, std::deque<type, _alloc>>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const wrapper <type, _alloc>& value) -> void {
+    	auto write_value(const wrapper <type, _alloc>& value) -> void {
     		_string_buffer_writer.StartArray();
     		for (auto& object : value) {
     			add_from(nullptr, object);
@@ -162,7 +162,7 @@ namespace crazy::json {
     	template <typename type, template <typename> class wrapper = std::stack,
     		std::enable_if_t<std::is_same_v<wrapper<type>, std::stack<type>>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const wrapper<type>& value) -> void {
+    	auto write_value(const wrapper<type>& value) -> void {
     		_string_buffer_writer.StartArray();
     		for (auto& object : value) {
     			add_from(nullptr, object);
@@ -174,7 +174,7 @@ namespace crazy::json {
     		std::enable_if_t<std::is_same_v<wrapper<type>, std::set<type>> ||
     		std::is_same_v<wrapper<type>, std::unordered_set<type>>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const wrapper<type>& value) -> void {
+    	auto write_value(const wrapper<type>& value) -> void {
     		_string_buffer_writer.StartArray();
     		for (auto& object : value) {
     			add_from(nullptr, object);
@@ -186,7 +186,7 @@ namespace crazy::json {
     		std::is_same_v<key, char*> ||
     		std::is_same_v<key, const char*>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::map<key, val>& value) -> void {
+    	auto write_value(const std::map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(_key, _val);
@@ -197,7 +197,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_same_v<key, std::string>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::map<key, val>& value) -> void {
+    	auto write_value(const std::map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(_key.c_str(), _val);
@@ -215,7 +215,7 @@ namespace crazy::json {
     		std::is_same_v<key, int64_t> ||
     		std::is_same_v<key, uint64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::map<key, val>& value) -> void {
+    	auto write_value(const std::map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(std::to_string(_key).c_str(), _val);
@@ -226,7 +226,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_enum_v<key>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::map<key, val>& value) -> void {
+    	auto write_value(const std::map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(std::to_string((int64_t)_key).c_str(), _val);
@@ -238,7 +238,7 @@ namespace crazy::json {
     		std::is_same_v<key, char*> ||
     		std::is_same_v<key, const char*>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::unordered_map<key, val>& value) -> void {
+    	auto write_value(const std::unordered_map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(_key, _val);
@@ -249,7 +249,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_same_v<key, std::string>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::unordered_map<key, val>& value) -> void {
+    	auto write_value(const std::unordered_map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(_key.c_str(), _val);
@@ -267,7 +267,7 @@ namespace crazy::json {
     		std::is_same_v<key, int64_t> ||
     		std::is_same_v<key, uint64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::unordered_map<key, val>& value) -> void {
+    	auto write_value(const std::unordered_map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(std::to_string(_key).c_str(), _val);
@@ -278,7 +278,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_enum_v<key>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const std::unordered_map<key, val>& value) -> void {
+    	auto write_value(const std::unordered_map<key, val>& value) -> void {
     		_string_buffer_writer.StartObject();
     		for (auto& [_key, _val] : value) {
     			add_from(std::to_string((int64_t)_key).c_str(), _val);
@@ -297,14 +297,14 @@ namespace crazy::json {
     		!std::is_same_v<type, uint32_t> &&
     		!std::is_same_v<type, uint64_t> &&
     		!std::is_same_v<type, bool> &&
-    		!std::is_same_v<type, float_t> &&
-    		!std::is_same_v<type, double_t> &&
+    		!std::is_same_v<type, float> &&
+    		!std::is_same_v<type, double> &&
     		!std::is_same_v<type, char*> &&
     		!std::is_same_v<type, const char*> &&
     		!std::is_same_v<type, std::string> &&
     		!std::is_enum_v<type> ), int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto write_value(const type& value) -> void {
+    	auto write_value(const type& value) -> void {
     		_string_buffer_writer.StartObject();
     		members_reflection<type>::to_json(*this, value);
     		_string_buffer_writer.EndObject();
@@ -320,7 +320,7 @@ namespace crazy::json {
     	friend class Deserialize;
     public:
     	template <typename type>
-    	constexpr auto get_from(const char* key, type& value) -> void {
+    	auto get_from(const char* key, type& value) -> void {
     		if (_innerValue->IsNull()) {
     			return;
     		} else if (auto it = _innerValue->FindMember(key); it != _innerValue->MemberEnd()) {
@@ -331,7 +331,7 @@ namespace crazy::json {
     	}
 
     	template <typename type>
-    	constexpr auto get_from(const char* key, std::optional<type>& value) -> void {
+    	auto get_from(const char* key, std::optional<type>& value) -> void {
     		if (auto it = _innerValue->FindMember(key); it != _innerValue->MemberEnd()) {
     			Value(key, &it->value).get_to<type>(value);
     		} else {
@@ -367,7 +367,7 @@ namespace crazy::json {
     private:
     	template<typename type>
     	[[nodiscard]]
-    	constexpr auto get() -> type {
+    	auto get() -> type {
     		type value {};
     		get_value(value);
     		return value;
@@ -382,10 +382,10 @@ namespace crazy::json {
     		std::is_same_v<type, uint32_t> ||
     		std::is_same_v<type, int64_t> ||
     		std::is_same_v<type, uint64_t> ||
-    		std::is_same_v<type, float_t> ||
-    		std::is_same_v<type, double_t>, int> = 0>
+    		std::is_same_v<type, float> ||
+    		std::is_same_v<type, double>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(type& value) -> void {
+    	auto get_value(type& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = type {};
     			return;
@@ -406,7 +406,7 @@ namespace crazy::json {
     	template<typename type, std::enable_if_t<
     		std::is_same_v<type, bool>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(type& value) -> void {
+    	auto get_value(type& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = type {};
     		} else if (_innerValue->IsBool()) {
@@ -417,7 +417,7 @@ namespace crazy::json {
     	template<typename type, std::enable_if_t<
     		std::is_same_v<type, char*>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(type& value) -> void {
+    	auto get_value(type& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = type {};
     		} else if (_innerValue->IsString()) {
@@ -428,7 +428,7 @@ namespace crazy::json {
     	template<typename type, std::enable_if_t<
     		std::is_same_v<type, std::string>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(type& value) -> void {
+    	auto get_value(type& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = type {};
     		} else if (_innerValue->IsString()) {
@@ -439,7 +439,7 @@ namespace crazy::json {
     	template<typename type, std::enable_if_t<
     		std::is_enum_v<type>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(type& value) -> void {
+    	auto get_value(type& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = type {};
     		}
@@ -475,7 +475,7 @@ namespace crazy::json {
     		std::is_same_v<wrapper<type, _alloc>, std::list<type, _alloc>> ||
     		std::is_same_v<wrapper<type, _alloc>, std::deque<type, _alloc>>, int> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(wrapper<type, _alloc>& value) -> void {
+    	auto get_value(wrapper<type, _alloc>& value) -> void {
     		if (_innerValue->IsNull() || !_innerValue->IsArray()) {
     			value = wrapper<type, _alloc> {};
     			return;
@@ -491,7 +491,7 @@ namespace crazy::json {
 
     	template<typename type>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::set<type>& value) -> void {
+    	auto get_value(std::set<type>& value) -> void {
     		if (_innerValue->IsNull() || !_innerValue->IsArray()) {
     			value = std::set<type> {};
     			return;
@@ -507,7 +507,7 @@ namespace crazy::json {
 
     	template<typename type>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::unordered_set<type>& value) -> void {
+    	auto get_value(std::unordered_set<type>& value) -> void {
     		if (_innerValue->IsNull() || !_innerValue->IsArray()) {
     			value = std::unordered_set<type> {};
     			return;
@@ -523,7 +523,7 @@ namespace crazy::json {
 
     	template<typename type>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::stack<type>& value) -> void {
+    	auto get_value(std::stack<type>& value) -> void {
     		if (_innerValue->IsNull() || !_innerValue->IsArray()) {
     			value = std::vector<type> {};
     			return;
@@ -541,7 +541,7 @@ namespace crazy::json {
     		std::is_same_v<key, char*> ||
     		std::is_same_v<key, const char*>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::map<key, val>& value) -> void {
+    	auto get_value(std::map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -559,7 +559,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_same_v<key, std::string>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::map<key, val>& value) -> void {
+    	auto get_value(std::map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -585,7 +585,7 @@ namespace crazy::json {
     		std::is_same_v<key, int64_t> ||
     		std::is_same_v<key, uint64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::map<key, val>& value) -> void {
+    	auto get_value(std::map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -603,7 +603,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_enum_v<key>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::map<key, val>& value) -> void {
+    	auto get_value(std::map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -622,7 +622,7 @@ namespace crazy::json {
     		std::is_same_v<key, char*> ||
     		std::is_same_v<key, const char*>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::unordered_map<key, val>& value) -> void {
+    	auto get_value(std::unordered_map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -640,7 +640,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_same_v<key, std::string>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::unordered_map<key, val>& value) -> void {
+    	auto get_value(std::unordered_map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -665,7 +665,7 @@ namespace crazy::json {
     		std::is_same_v<key, int64_t> ||
     		std::is_same_v<key, uint64_t>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::unordered_map<key, val>& value) -> void {
+    	auto get_value(std::unordered_map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -683,7 +683,7 @@ namespace crazy::json {
     	template <typename key, typename val, std::enable_if_t<
     		std::is_enum_v<key>, int32_t> = 0>
     	[[maybe_unused]]
-    	constexpr auto get_value(std::unordered_map<key, val>& value) -> void {
+    	auto get_value(std::unordered_map<key, val>& value) -> void {
     		if (_innerValue->IsNull()) {
     			value = std::map<key, val> {};
     			return;
@@ -708,8 +708,8 @@ namespace crazy::json {
     		!std::is_same_v<type, uint32_t> &&
     		!std::is_same_v<type, uint64_t> &&
     		!std::is_same_v<type, bool> &&
-    		!std::is_same_v<type, float_t> &&
-    		!std::is_same_v<type, double_t> &&
+    		!std::is_same_v<type, float> &&
+    		!std::is_same_v<type, double> &&
     		!std::is_same_v<type, char*> &&
     		!std::is_same_v<type, const char*> &&
     		!std::is_same_v<type, std::string> &&
@@ -739,7 +739,7 @@ namespace crazy::json {
     	}
 
     	template <typename type>
-    	constexpr auto deserialize(type& value) -> void {
+    	auto deserialize(type& value) -> void {
     		Value val(nullptr, _innerDom);
     		val.get_to(value);
     	}
