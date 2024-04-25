@@ -39,7 +39,6 @@ namespace crazy {
 		makecontext(&m_ctx, &Coroutine::MasterCoroutine, 0);
 	}
 	Coroutine::~Coroutine() {
-		std::cout << "destroy coroutine, id = " << m_coroutineId << std::endl;
 		--t_scoroutine_count;
 		if (m_pStack) {
 			Allocator::Dealloc(m_pStack, m_stackSize);
