@@ -25,7 +25,7 @@
 #include "crazy/message.h"
 #include "crazy/mutex.h"
 #include "crazy/processer.h"
-#include "crazy/rapidjson_reflection.h"
+#include "crazy/json.h"
 #include "crazy/reflection.h"
 #include "crazy/selector.h"
 #include "crazy/scheduler.h"
@@ -57,6 +57,9 @@
 #include "crazy/http/ws_server.h"
 #include "crazy/http/ws_servlet.h"
 #include "crazy/http/ws_session.h"
+
+#include "crazy/rapidxml/rapidxml.h"
+#include "crazy/rapidxml/rapidxml_print.h"
 
 #include "crazy/streams/socket_stream.h"
 
