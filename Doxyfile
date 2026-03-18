@@ -1,0 +1,438 @@
+#---------------------------------------------------------------------------
+# Project related configuration options
+#---------------------------------------------------------------------------
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "crazy"
+PROJECT_NUMBER         = "1.0.2"
+PROJECT_BRIEF          = "crazy框架"
+PROJECT_LOGO           = 
+OUTPUT_DIRECTORY       = ./doc
+CREATE_SUBDIRS         = YES              # 避免文件过多导致性能问题
+ALLOW_UNICODE_NAMES    = YES              # 允许Unicode文件名
+OUTPUT_LANGUAGE        = Chinese
+OUTPUT_TEXT_DIRECTION  = None
+
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = YES
+ALWAYS_DETAILED_SEC    = YES
+INLINE_INHERITED_MEMB  = YES
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = 
+STRIP_FROM_INC_PATH    = 
+SHORT_NAMES            = NO
+
+# 注释解析风格
+JAVADOC_AUTOBRIEF      = YES               # 自动提取Javadoc风格注释
+JAVADOC_BANNER         = NO
+QT_AUTOBRIEF           = NO
+MULTILINE_CPP_IS_BRIEF = NO
+INHERIT_DOCS           = YES
+SEPARATE_MEMBER_PAGES  = NO
+TAB_SIZE               = 4
+
+# 语言优化
+OPTIMIZE_OUTPUT_FOR_C  = NO                # 如果是纯C项目改为YES
+OPTIMIZE_OUTPUT_JAVA   = NO
+OPTIMIZE_FOR_FORTRAN   = NO
+OPTIMIZE_OUTPUT_VHDL   = NO
+OPTIMIZE_OUTPUT_SLICE  = NO
+
+# Markdown支持
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 5
+AUTOLINK_SUPPORT       = YES
+
+# 内置支持
+BUILTIN_STL_SUPPORT    = YES               # 支持STL类
+CPP_CLI_SUPPORT        = NO
+SIP_SUPPORT            = NO
+IDL_PROPERTY_SUPPORT   = YES
+
+# 分组相关
+DISTRIBUTE_GROUP_DOC   = NO
+GROUP_NESTED_COMPOUNDS = NO
+SUBGROUPING            = YES
+INLINE_GROUPED_CLASSES = NO
+INLINE_SIMPLE_STRUCTS  = NO
+TYPEDEF_HIDES_STRUCT   = NO
+
+# 缓存优化
+LOOKUP_CACHE_SIZE      = 4                 # 增大缓存提升速度（2^(16+4)=1,048,576）
+
+#---------------------------------------------------------------------------
+# Build related configuration options (提取控制)
+#---------------------------------------------------------------------------
+EXTRACT_ALL            = YES                # 即使无注释也提取
+EXTRACT_PRIVATE        = NO                 # 不提取私有成员
+EXTRACT_PRIV_VIRTUAL   = NO
+EXTRACT_PACKAGE        = NO
+EXTRACT_STATIC         = YES                # 提取静态函数
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = NO
+EXTRACT_ANON_NSPACES   = NO
+
+# 隐藏选项
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+HIDE_IN_BODY_DOCS      = NO
+INTERNAL_DOCS          = NO
+
+# 大小写敏感（WSL区分大小写）
+CASE_SENSE_NAMES       = YES
+HIDE_SCOPE_NAMES       = NO
+HIDE_COMPOUND_REFERENCE= NO
+SHOW_INCLUDE_FILES     = YES
+SHOW_GROUPED_MEMB_INC  = NO
+FORCE_LOCAL_INCLUDES   = NO
+INLINE_INFO            = YES
+
+# 排序选项
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = NO
+SORT_MEMBERS_CTORS_1ST = NO
+SORT_GROUP_NAMES       = NO
+SORT_BY_SCOPE_NAME     = NO
+STRICT_PROTO_MATCHING  = NO
+
+# 特殊列表
+GENERATE_TODOLIST      = YES
+GENERATE_TESTLIST      = YES
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST= YES
+ENABLED_SECTIONS       =
+
+MAX_INITIALIZER_LINES  = 30
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+FILE_VERSION_FILTER    =
+LAYOUT_FILE            =
+CITE_BIB_FILES         =
+
+#---------------------------------------------------------------------------
+# Warning and progress messages
+#---------------------------------------------------------------------------
+QUIET                  = NO                 # 显示进度
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES                # 警告缺少参数文档
+WARN_AS_ERROR          = NO
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LOGFILE           =                    # 可以指定为 doxygen_warnings.log
+
+#---------------------------------------------------------------------------
+# Input file configuration
+#---------------------------------------------------------------------------
+INPUT                  = ./src ./include
+INPUT_ENCODING         = UTF-8
+
+FILE_PATTERNS          = *.c \
+                         *.cc \
+                         *.cxx \
+                         *.cpp \
+                         *.c++ \
+                         *.h \
+                         *.hh \
+                         *.hxx \
+                         *.hpp \
+                         *.h++ \
+                         *.inc \
+                         *.inl \
+                         *.md \
+                         *.markdown
+
+RECURSIVE              = YES
+
+# 排除第三方库和不需要的目录
+EXCLUDE                = ./src/third_party \
+                         ./src/crazy/rapidjson \
+                         ./build \
+                         ./docs \
+                         ./tests
+
+EXCLUDE_SYMLINKS       = NO
+
+# 排除模式（通配符）
+EXCLUDE_PATTERNS       = */test/* \
+                         */unittest/* \
+                         */CMakeFiles/* \
+                         */.git/* \
+                         */.svn/* \
+                         *.bak \
+                         *~ \
+                         *.orig \
+                         *_test.cpp \
+                         *_unittest.cpp
+
+EXCLUDE_SYMBOLS        = *::detail::* \
+                         *::internal::* \
+                         *_private
+
+EXAMPLE_PATH           =
+EXAMPLE_PATTERNS       = *
+EXAMPLE_RECURSIVE      = NO
+IMAGE_PATH             =
+INPUT_FILTER           =
+FILTER_PATTERNS        =
+FILTER_SOURCE_FILES    = NO
+FILTER_SOURCE_PATTERNS =
+USE_MDFILE_AS_MAINPAGE = README.md          # 如果有README作为主页
+
+#---------------------------------------------------------------------------
+# Source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = NO                  # 如需要查看源码改为YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION    = NO
+REFERENCES_LINK_SOURCE = YES
+SOURCE_TOOLTIPS        = YES
+USE_HTAGS              = NO
+VERBATIM_HEADERS       = YES
+
+# Clang辅助解析（如有复杂模板可开启）
+CLANG_ASSISTED_PARSING = NO
+CLANG_OPTIONS          =
+CLANG_DATABASE_PATH    =
+
+#---------------------------------------------------------------------------
+# Alphabetical class index
+#---------------------------------------------------------------------------
+ALPHABETICAL_INDEX     = YES
+COLS_IN_ALPHA_INDEX    = 5
+IGNORE_PREFIX          =
+
+#---------------------------------------------------------------------------
+# HTML output
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+HTML_EXTRA_STYLESHEET  =
+HTML_EXTRA_FILES       =
+
+# 颜色主题（220蓝色系）
+HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_SAT    = 100
+HTML_COLORSTYLE_GAMMA  = 80
+HTML_TIMESTAMP         = YES                 # 显示生成时间
+HTML_DYNAMIC_MENUS     = YES
+HTML_DYNAMIC_SECTIONS  = YES                 # 可折叠章节
+HTML_INDEX_NUM_ENTRIES = 100
+
+# 文档集（不需要可以关闭）
+GENERATE_DOCSET        = NO
+DOCSET_FEEDNAME        = "Doxygen generated docs"
+DOCSET_BUNDLE_ID       = org.doxygen.Project
+DOCSET_PUBLISHER_ID    = org.doxygen.Publisher
+DOCSET_PUBLISHER_NAME  = Publisher
+
+# HTML帮助（Windows专用）
+GENERATE_HTMLHELP      = NO
+CHM_FILE               =
+HHC_LOCATION           =
+GENERATE_CHI           = NO
+CHM_INDEX_ENCODING     =
+BINARY_TOC             = NO
+TOC_EXPAND             = NO
+
+# Qt帮助
+GENERATE_QHP           = NO
+QCH_FILE               =
+QHP_NAMESPACE          = org.doxygen.Project
+QHP_VIRTUAL_FOLDER     = doc
+QHP_CUST_FILTER_NAME   =
+QHP_CUST_FILTER_ATTRS  =
+QHP_SECT_FILTER_ATTRS  =
+QHG_LOCATION           =
+
+# Eclipse帮助
+GENERATE_ECLIPSEHELP   = NO
+ECLIPSE_DOC_ID         = org.doxygen.Project
+
+# 导航树
+DISABLE_INDEX          = NO
+GENERATE_TREEVIEW      = YES                 # 树状导航
+ENUM_VALUES_PER_LINE   = 4
+TREEVIEW_WIDTH         = 300
+EXT_LINKS_IN_WINDOW    = NO
+
+# 公式支持
+FORMULA_FONTSIZE       = 10
+FORMULA_TRANSPARENT    = YES
+FORMULA_MACROFILE      =
+
+# MathJax支持
+USE_MATHJAX            = NO
+MATHJAX_FORMAT         = HTML-CSS
+MATHJAX_RELPATH        = https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/
+MATHJAX_EXTENSIONS     =
+MATHJAX_CODEFILE       =
+
+# 搜索功能
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+EXTERNAL_SEARCH        = NO
+SEARCHENGINE_URL       =
+SEARCHDATA_FILE        = searchdata.xml
+EXTERNAL_SEARCH_ID     =
+EXTRA_SEARCH_MAPPINGS  =
+
+#---------------------------------------------------------------------------
+# LaTeX output (PDF)
+#---------------------------------------------------------------------------
+GENERATE_LATEX         = NO                  # 不需要PDF可关闭
+LATEX_OUTPUT           = latex
+LATEX_CMD_NAME         =
+MAKEINDEX_CMD_NAME     = makeindex
+LATEX_MAKEINDEX_CMD    = makeindex
+COMPACT_LATEX          = NO
+PAPER_TYPE             = a4
+EXTRA_PACKAGES         =
+LATEX_HEADER           =
+LATEX_FOOTER           =
+LATEX_EXTRA_STYLESHEET =
+LATEX_EXTRA_FILES      =
+PDF_HYPERLINKS         = YES
+USE_PDFLATEX           = YES
+LATEX_BATCHMODE        = NO
+LATEX_HIDE_INDICES     = NO
+LATEX_SOURCE_CODE      = NO
+LATEX_BIB_STYLE        = plain
+LATEX_TIMESTAMP        = NO
+LATEX_EMOJI_DIRECTORY  =
+
+#---------------------------------------------------------------------------
+# RTF output
+#---------------------------------------------------------------------------
+GENERATE_RTF           = NO
+RTF_OUTPUT             = rtf
+COMPACT_RTF            = NO
+RTF_HYPERLINKS         = NO
+RTF_STYLESHEET_FILE    =
+RTF_EXTENSIONS_FILE    =
+RTF_SOURCE_CODE        = NO
+
+#---------------------------------------------------------------------------
+# Man page output
+#---------------------------------------------------------------------------
+GENERATE_MAN           = NO
+MAN_OUTPUT             = man
+MAN_EXTENSION          = .3
+MAN_SUBDIR             =
+MAN_LINKS              = NO
+
+#---------------------------------------------------------------------------
+# XML output
+#---------------------------------------------------------------------------
+GENERATE_XML           = NO
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = YES
+XML_NS_MEMB_FILE_SCOPE = NO
+
+#---------------------------------------------------------------------------
+# DocBook output
+#---------------------------------------------------------------------------
+GENERATE_DOCBOOK       = NO
+DOCBOOK_OUTPUT         = docbook
+DOCBOOK_PROGRAMLISTING = NO
+
+#---------------------------------------------------------------------------
+# AutoGen Definitions output
+#---------------------------------------------------------------------------
+GENERATE_AUTOGEN_DEF   = NO
+
+#---------------------------------------------------------------------------
+# Perl module output
+#---------------------------------------------------------------------------
+GENERATE_PERLMOD       = NO
+PERLMOD_LATEX          = NO
+PERLMOD_PRETTY         = YES
+PERLMOD_MAKEVAR_PREFIX =
+
+#---------------------------------------------------------------------------
+# Preprocessor options
+#---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO                  # 如需展开宏改为YES
+EXPAND_ONLY_PREDEF     = NO
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = ./src ./include
+INCLUDE_FILE_PATTERNS  =
+
+# 预定义宏（根据需要添加）
+PREDEFINED             = __cplusplus \
+                         _DEBUG \
+                         NDEBUG
+
+EXPAND_AS_DEFINED      =
+SKIP_FUNCTION_MACROS   = YES
+
+#---------------------------------------------------------------------------
+# External references
+#---------------------------------------------------------------------------
+TAGFILES               =
+GENERATE_TAGFILE       =
+ALLEXTERNALS           = NO
+EXTERNAL_GROUPS        = YES
+EXTERNAL_PAGES         = YES
+
+#---------------------------------------------------------------------------
+# Dot tool configuration (Graphviz)
+#---------------------------------------------------------------------------
+CLASS_DIAGRAMS         = YES
+DIA_PATH               =
+HIDE_UNDOC_RELATIONS   = YES
+
+# Graphviz核心配置
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 4                    # 并行处理
+DOT_FONTNAME           = "Microsoft YaHei"     # WSL中需安装中文字体
+DOT_FONTSIZE           = 11
+DOT_FONTPATH           = /usr/share/fonts
+
+# 图类型控制
+CLASS_GRAPH            = YES                   # 类继承图
+COLLABORATION_GRAPH    = YES                   # 类协作图
+GROUP_GRAPHS           = NO                    # 组图（不需要）
+UML_LOOK               = NO                    # UML风格（好看但慢）
+UML_LIMIT_NUM_FIELDS   = 10
+TEMPLATE_RELATIONS     = NO                    # 模板关系
+INCLUDE_GRAPH          = YES                   # 包含关系图
+INCLUDED_BY_GRAPH      = NO                    # 被包含关系
+CALL_GRAPH             = NO                    # 调用图（耗资源）
+CALLER_GRAPH           = NO                    # 被调用图
+GRAPHICAL_HIERARCHY    = YES                   # 图形化层次
+DIRECTORY_GRAPH        = YES                   # 目录依赖图
+
+# 输出格式和质量
+DOT_IMAGE_FORMAT       = svg                    # 矢量图
+INTERACTIVE_SVG        = YES                    # 可交互
+DOT_PATH               =
+
+# 图文件目录
+DOTFILE_DIRS           =
+MSCFILE_DIRS           =
+DIAFILE_DIRS           =
+PLANTUML_JAR_PATH      =
+PLANTUML_CFG_FILE      =
+PLANTUML_INCLUDE_PATH  =
+
+# 图大小限制（防止过载）
+DOT_GRAPH_MAX_NODES    = 150
+MAX_DOT_GRAPH_DEPTH    = 5
+
+# 其他dot选项
+DOT_TRANSPARENT        = NO
+DOT_MULTI_TARGETS      = YES
+GENERATE_LEGEND        = YES
+DOT_CLEANUP            = YES
