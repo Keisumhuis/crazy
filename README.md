@@ -4,6 +4,8 @@
 
 - **语言标准**：C++17  |  **构建**：CMake 3.15+  |  **版本**：1.0.2
 
+> [English](README.en.md)
+
 ## 功能模块
 
 | 模块 | 说明 |
@@ -72,13 +74,13 @@ int main(int argc, char** argv) {
 $ ./exe
 
 # 发送命令（另一个终端）
-$ ./exe -s "my_actor@query"
+$ ./exe -s my_actor@query
 # → result: ok
 
-$ ./exe -s "my_actor@clear"
+$ ./exe -s my_actor@clear
 # → cleared
 
-$ ./exe -s "my_actor@print_message_queue_size"
+$ ./exe -s my_actor@print_message_queue_size
 # → 当前消息队列长度：0
 
 # 查看所有可用命令
@@ -285,17 +287,3 @@ chmod +x build_crazy_framework.sh && ./build_crazy_framework.sh
 # 手动
 mkdir build && cd build && cmake .. && cmake --build .
 ```
-
-## 运行测试
-
-`test_actor` `test_actor_client` `test_config` `test_logger` `test_protocol` `test_json` `test_encryption` `test_date_time` `test_lock` `test_mvvc_lock_wapper` `test_localsocket` `test_mmap` `test_key_value_pair`
-
-## 文档
-
-```bash
-doxygen Doxyfile   # 生成到 doc/ 目录
-```
-
-## 许可证
-
-详见 [LICENSE](LICENSE) 文件。
