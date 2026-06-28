@@ -1,12 +1,12 @@
 @echo off
 chcp 65001 >nul
-title Build Crazy Framework (VS2022)
+title Build Crazy Framework (VS2026)
 
 set PROJECT_ROOT=%cd%
 set BUILD_DIR=%PROJECT_ROOT%/out_windows
 
 echo ========================================
-echo    Crazy Framework Build Script (VS2022)
+echo    Crazy Framework Build Script (VS2026)
 echo ========================================
 
 :: 创建构建目录
@@ -14,14 +14,14 @@ if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 echo.
 echo ========================================
-echo 1. Building x86 Debug (VS2022)...
+echo 1. Building x86 Debug (VS2026)...
 echo ========================================
 
 cd /d "%BUILD_DIR%"
 if not exist "x86_debug" mkdir "x86_debug"
 cd /d "%BUILD_DIR%/x86_debug"
 
-cmake "%PROJECT_ROOT%" -G "Visual Studio 17 2022" -A Win32
+cmake "%PROJECT_ROOT%" -G "Visual Studio 18 2026" -A Win32
 if %errorlevel% equ 0 (
     cmake --build . --config Debug
     if %errorlevel% equ 0 (
@@ -33,14 +33,14 @@ if %errorlevel% equ 0 (
 
 echo.
 echo ========================================
-echo 2. Building x86 Release (VS2022)...
+echo 2. Building x86 Release (VS2026)...
 echo ========================================
 
 cd /d "%BUILD_DIR%"
 if not exist "x86_release" mkdir "x86_release"
 cd /d "%BUILD_DIR%/x86_release"
 
-cmake "%PROJECT_ROOT%" -G "Visual Studio 17 2022" -A Win32
+cmake "%PROJECT_ROOT%" -G "Visual Studio 18 2026" -A Win32
 if %errorlevel% equ 0 (
     cmake --build . --config Release
     if %errorlevel% equ 0 (
@@ -52,14 +52,14 @@ if %errorlevel% equ 0 (
 
 echo.
 echo ========================================
-echo 3. Building x64 Debug (VS2022)...
+echo 3. Building x64 Debug (VS2026)...
 echo ========================================
 
 cd /d "%BUILD_DIR%"
 if not exist "x64_debug" mkdir "x64_debug"
 cd /d "%BUILD_DIR%/x64_debug"
 
-cmake "%PROJECT_ROOT%" -G "Visual Studio 17 2022" -A x64
+cmake "%PROJECT_ROOT%" -G "Visual Studio 18 2026" -A x64
 if %errorlevel% equ 0 (
     cmake --build . --config Debug
     if %errorlevel% equ 0 (
@@ -71,14 +71,14 @@ if %errorlevel% equ 0 (
 
 echo.
 echo ========================================
-echo 4. Building x64 Release (VS2022)...
+echo 4. Building x64 Release (VS2026)...
 echo ========================================
 
 cd /d "%BUILD_DIR%"
 if not exist "x64_release" mkdir "x64_release"
 cd /d "%BUILD_DIR%/x64_release"
 
-cmake "%PROJECT_ROOT%" -G "Visual Studio 17 2022" -A x64
+cmake "%PROJECT_ROOT%" -G "Visual Studio 18 2026" -A x64
 if %errorlevel% equ 0 (
     cmake --build . --config Release
     if %errorlevel% equ 0 (

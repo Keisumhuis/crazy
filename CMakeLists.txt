@@ -9,11 +9,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -g3 -D_DEBUG /utf-8")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG /utf-8")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb -g -DNDEBUG /utf-8")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -ggdb -g -DNDEBUG /utf-8")
 else()
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -g3 -D_DEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb -g -DNDEBUG")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -ggdb -g -DNDEBUG")
 endif()
@@ -29,6 +29,8 @@ file(GLOB_RECURSE SOURCES
     "src/crazy/*.cpp"
     "src/crazy/encryption/*.cpp"
     "src/crazy/net/*.cpp"
+    "src/crazy/net/http/*.c"
+    "src/crazy/net/http/*.cpp"
 )
 
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/src/third_party")
@@ -115,7 +117,6 @@ add_crazy_test(test_actor_client)
 add_crazy_test(test_config)
 add_crazy_test(test_logger)
 add_crazy_test(test_protocol)
-add_crazy_test(test_mysql)
 add_crazy_test(test_mvvc_lock_wapper)
 add_crazy_test(test_localsocket)
 add_crazy_test(test_json)
