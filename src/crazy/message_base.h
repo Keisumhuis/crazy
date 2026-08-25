@@ -26,6 +26,10 @@ namespace crazy {
 		 */
 		virtual ~MessageBase() = default;
 		/**
+		 * @brief 拷贝消息
+		 */
+		virtual MessageBase::ptr clone() const;
+		/**
 		 * @brief 设置来源.
 		 */
 		void setSource(const std::string& source);
@@ -74,9 +78,9 @@ namespace crazy {
 		//! 来源
 		std::string source_;
 		//! 会话id
-		uint64_t sessionId_;
+		uint64_t sessionId_ = 0;
 		//! 路由字段
-		uint64_t cmd_;
+		uint64_t cmd_ = 0;
 		//! 备注字段
 		std::string comment_;
 		//! 消息正文
@@ -100,6 +104,9 @@ namespace crazy {
 		 */
 		const value_type& getValue() const {
 			return value_;
+		}
+		MessageBase::ptr clone() const override {
+			return std::make_shared<InternalMessage<value_type>>(*this);
 		}
 
 	private:

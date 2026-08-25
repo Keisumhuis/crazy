@@ -173,4 +173,18 @@ namespace crazy {
 		 */
 		static bool CopyDirectory(const std::string& source, const std::string& destination);
 	};
+	/**
+	 * @brief 线程工具类.
+	 */
+	class ThreadUtil {
+	public:
+		/**
+		 * @brief 设置线程名称.
+		 */
+		static void SetThreadName(const std::string& name);
+		/**
+		 * @brief 获取线程名称.
+		 */
+		static std::string GetThreadName();
+	};
 }

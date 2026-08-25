@@ -45,6 +45,10 @@ namespace crazy {
 		 */
 		void enqueueRunnable(std::function<void()> runnable);
 		/**
+		 * @brief 新增异步任务.
+		 */
+		void enqueueRunnable(std::function<void()> runnable, int32_t threadIndex);
+		/**
 		 * @brief 获取一个线程
 		 */
 		ActorInterface::ptr getActorImplement();

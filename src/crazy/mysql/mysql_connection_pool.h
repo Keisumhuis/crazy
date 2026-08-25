@@ -201,6 +201,15 @@ namespace crazy {
 					}
 				}
 
+				if (connections_.size() < config_.max_connections) {
+					auto conn = createConnection(false);
+					if (conn) {
+						CRAZY_SYSTEM_DEBUG() << "Create connection from pool, total: "
+							<< connections_.size();
+						return createManagedConnection(conn);
+					}
+				}
+
 				// 等待连接可用
 				if (timeout_ms == 0) {
 					condition_.wait(lock);
@@ -309,7 +318,7 @@ namespace crazy {
 		 * @brief 创建新的数据库连接
 		 * @return MySQLConnection::ptr 新创建的连接
 		 */
-		MySQLConnection::ptr createConnection() {
+		MySQLConnection::ptr createConnection(bool push_to_idle = true) {
 			try {
 				auto conn = std::make_shared<MySQLConnection>();
 
@@ -325,7 +334,9 @@ namespace crazy {
 				}
 
 				connections_.insert(conn);
-				idle_connections_.push(conn);
+				if (push_to_idle) {
+					idle_connections_.push(conn);
+				}
 				CRAZY_SYSTEM_DEBUG() << "New connection created successfully";
 				return conn;
 
@@ -342,9 +353,8 @@ namespace crazy {
 		 * @return MySQLConnection::ptr 托管连接
 		 */
 		MySQLConnection::ptr createManagedConnection(MySQLConnection::ptr conn) {
-			// 使用自定义删除器，在连接被销毁时自动归还到连接池
-			auto deleter = [this, raw_conn = conn.get()](MySQLConnection*) {
-				returnConnection(raw_conn->shared_from_this());
+			auto deleter = [this, conn](MySQLConnection*) mutable {
+				returnConnection(std::move(conn));
 				};
 
 			return MySQLConnection::ptr(conn.get(), deleter);

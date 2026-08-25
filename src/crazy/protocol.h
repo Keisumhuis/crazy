@@ -18,6 +18,7 @@
 #include <map>
 #include <set>
 #include <stack>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -212,8 +213,15 @@ namespace crazy::protocol {
 		[[maybe_unused]] auto writeValue(const std::stack<T>& value) -> void {
 			writeType(ProtocolValueType::STACK);
 			writeValue((uint64_t)value.size());
-			for (const auto& it : value) {
-				writeValue(it);
+			std::stack<T> tmp = value;
+			std::vector<T> items;
+			items.reserve(value.size());
+			while (!tmp.empty()) {
+				items.push_back(tmp.top());
+				tmp.pop();
+			}
+			for (auto it = items.rbegin(); it != items.rend(); ++it) {
+				writeValue(*it);
 			}
 		}
 
@@ -285,7 +293,8 @@ namespace crazy::protocol {
 			readValue(value);
 		}
 		template <typename type>
-		Deserialize& operator>>(const type& value) {
+		Deserialize& operator>>(type& value) {
+			readValue(value);
 			return *this;
 		}
 		void setBuffer(const Buffer& buffer) {
@@ -405,7 +414,10 @@ namespace crazy::protocol {
 			}
 			uint64_t count = 0;
 			readValue(count);
-			value.resize(count);
+			if (count > buffer_.readableCount()) {
+				throw std::logic_error("protocol string length exceeds readable bytes");
+			}
+			value.resize(static_cast<size_t>(count));
 			read(value.data(), count);
 		}
 
@@ -586,6 +598,9 @@ namespace crazy::protocol {
 			return type;
 		}
 		void read(char* data, uint64_t count) {
+			if (count > buffer_.readableCount()) {
+				throw std::logic_error("protocol buffer underflow");
+			}
 			memcpy(data, buffer_.readBegin(), count);
 			buffer_.readed(count);
 		}
@@ -603,6 +618,9 @@ namespace crazy::protocol {
 		}
 		template <typename type>
 		static type Deserializable(const std::string& value) {
+			if (value.size() > UINT32_MAX) {
+				throw std::logic_error("protocol input is too large");
+			}
 			type object;
 			Buffer buffer;
 			buffer.append(value.c_str(), (uint32_t)value.size());

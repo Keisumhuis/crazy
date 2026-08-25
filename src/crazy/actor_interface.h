@@ -104,6 +104,11 @@ namespace crazy {
 		 * @param message 消息
 		 */
 		void onRecvMessgaBase(MessageBase::ptr message);
+		/**
+		 * @brief 判断消息是否为命令行消息
+		 * @param message 消息
+		 */
+		bool IsCommandLineMessage(const MessageBase::ptr& message);
 
 	protected:
 		//! 名字
@@ -116,6 +121,8 @@ namespace crazy {
 		CondMutex condMutex_;
 		//! 消息队列
 		std::deque<MessageBase::ptr> messageQueue_;
+		//! 命令行消息队列
+		std::deque<MessageBase::ptr> commandLineMessageQueue_;
 		//! 异步执行函数
 		std::deque<std::function<void()>> functionQueue_;
 	};

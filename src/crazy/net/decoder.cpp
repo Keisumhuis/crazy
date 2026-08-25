@@ -17,7 +17,8 @@ namespace crazy {
 			if ((DecodeStatus::begin == status_) && buffer_.readableCount() >= sizeof(uint64_t)) {
 				memcpy(&size_, buffer_.readBegin(), sizeof(uint64_t));
 				buffer_.readed(sizeof(uint64_t));
-				if (size_ > maxMessageLength_) {
+				if (size_ < sizeof(uint64_t) || size_ > maxMessageLength_) {
+					reset();
 					sendException();
 					break;
 				}

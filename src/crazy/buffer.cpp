@@ -59,11 +59,15 @@ namespace crazy {
 
         readableBegin_ += size;
         if (readableCount() == 0) {
-            reset();
+            readableBegin_ = 0;
+            writableBegin_ = 0;
         }
     }
 
     void Buffer::written(uint32_t size) {
+        if (size > writableCount()) {
+            throw std::out_of_range("write size exceeds writable bytes");
+        }
         writableBegin_ += size;
     }
 

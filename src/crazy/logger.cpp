@@ -1,11 +1,25 @@
 #include "crazy/logger.h"
 
+#include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 
 #include "crazy/config.h"
 
 namespace crazy {
+	namespace {
+		std::tm LocalTime(time_t time) {
+			std::tm tm = {};
+#ifdef _WIN32
+			localtime_s(&tm, &time);
+#else
+			localtime_r(&time, &tm);
+#endif
+			return tm;
+		}
+	}
+
 	const char* GetLoggerLevelString(LoggerLevel level) {
 		switch (level) {
 #define XX(type, value, string) case LoggerLevel::type: return #string;
@@ -66,8 +80,8 @@ namespace crazy {
 	void LoggerDateTimeComponentImpl::log(std::ostream& os, const LoggerEvent::ptr event) {
 		char buffer[80] = {};
 		auto time = (time_t)event->getTimestamp() / 1000;
-		auto timeinfo = localtime(&time);
-		strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S.", timeinfo);
+		auto timeinfo = LocalTime(time);
+		strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S.", &timeinfo);
 		os << buffer << std::setw(3) << std::setfill('0') << event->getTimestamp() % 1000;
 	}
 	void LoggerCategoryComponentImpl::log(std::ostream& os, const LoggerEvent::ptr event) {
@@ -96,6 +110,8 @@ namespace crazy {
 		if (format_ == format) {
 			return;
 		}
+		format_ = format;
+		components_.clear();
 		parse();
 	}
 	std::string LoggerFormatter::log(const LoggerEvent::ptr event) {
@@ -225,8 +241,8 @@ namespace crazy {
 		std::stringstream ss;
 		char buffer[80] = {};
 		auto time = (time_t)GetCurrentMS() / 1000;
-		auto timeinfo = localtime(&time);
-		strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S.", timeinfo);
+		auto timeinfo = LocalTime(time);
+		strftime(buffer, sizeof(buffer), "%Y%m%d%H%M%S.", &timeinfo);
 		ss << buffer << std::setw(3) << std::setfill('0') << GetCurrentMS() % 1000;
 
 		std::string oldFilePath = config->logFilePath_ + "/" + loggerName + "_" + levelString + ".log";
@@ -294,6 +310,7 @@ namespace crazy {
 		}
 	}
 	Logger::ptr LoggerManager::getLogger(const std::string& name) {
+		std::lock_guard<std::mutex> lock(mutex_);
 		auto itLogger = loggers_.find(name);
 		if (loggers_.end() != itLogger) {
 			return itLogger->second;

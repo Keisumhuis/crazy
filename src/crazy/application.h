@@ -11,18 +11,22 @@
 
 #include <stdint.h>
 
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "crazy/actor_interface.h"
+#include "crazy/clickhouse/clickhouse_connection_pool.h"
 #include "crazy/command_line.h"
 #include "crazy/file_lock.h"
 #include "crazy/thread_pool.h"
 #include "crazy/mysql/mysql_connection_pool.h"
 #include "crazy/net/local_socket.h"
 
-//! MySQL 链接池
+//! ClickHouse 连接池
+#define CLICKHOUSE_CONNECTION_POOL crazy::Application::application()->getClickHouseConnectionPool()
+//! MySQL 连接池
 #define MYSQL_CONNECTION_POOL crazy::Application::application()->getMySQLConnectionPool()
 
 namespace crazy {
@@ -45,6 +49,10 @@ namespace crazy {
 		 */
 		static Application* application();
 		/**
+		 * @brief 获取ClickHouse连接池.
+		 */
+		ClickHouseConnectionPool::ptr getClickHouseConnectionPool();
+		/**
 		 * @brief 获取MySQL连接池.
 		 */
 		MySQLConnectionPool::ptr getMySQLConnectionPool();
@@ -54,8 +62,13 @@ namespace crazy {
 		void exec();
 		/**
 		 * @brief 停止服务.
+		 * @param exitCode 进程退出码.
 		 */
-		void stopService();
+		void stopService(int32_t exitCode = 0);
+		/**
+		 * @brief 重启服务.
+		 */
+		void restartService();
 		/**
 		 * @brief 获取帮助手册.
 		 */
@@ -64,6 +77,18 @@ namespace crazy {
 		 * @brief 注册actor.
 		 */
 		void registerActor(ActorInterface::ptr actor);
+		/**
+		 * @brief 分发命令行消息.
+		 */
+		bool dispatchCommandLine(const std::string& input, uint64_t sessionId, const std::string& requestId, std::string* error = nullptr);
+		/**
+		 * @brief 获取命令行帮助手册.
+		 */
+		std::string commandLineHelp();
+		/**
+		 * @brief 获取actor名称列表.
+		 */
+		std::vector<std::string> actorNames();
 		/**
 		 * @brief 注册actor.
 		 */
@@ -83,6 +108,10 @@ namespace crazy {
 		 */
 		void enqueueRunnable(std::function<void()> runnable);
 		/**
+		 * @brief 新增异步任务.
+		 */
+		void enqueueRunnable(std::function<void()> runnable, int32_t threadIndex);
+		/**
 		 * @brief 获取一个后台线程.
 		 */
 		ActorInterface::ptr getActorImplement();
@@ -90,11 +119,12 @@ namespace crazy {
 	protected:
 		/**
 		 * @brief 处理命令行消息.
-		 * @param message 消息
+		 * @param request 请求消息
+		 * @param response 应答消息
 		 */
 		virtual void handleCommandLineMessgaBase(MessageBase::ptr request, MessageBase::ptr response);
 		/**
-		 * @brief 处理命令行消息.
+		 * @brief 处理普通消息.
 		 * @param message 消息
 		 */
 		virtual void handleMessgaBase(MessageBase::ptr message);
@@ -142,7 +172,9 @@ namespace crazy {
 		std::map<std::string, std::map<std::string, std::string>> helps_;
 		//! 应用锁
 		FileLock appLock_;
-		//! MySQL链接池
+		//! ClickHouse连接池
+		ClickHouseConnectionPool::ptr clichouseConnectionPool_ = nullptr;
+		//! MySQL连接池
 		MySQLConnectionPool::ptr mysqlConnectionPool_ = nullptr;
 	};
 	template <typename actor_type>

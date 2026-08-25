@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
+#include <pthread.h>
 #endif
 
 #include <string.h>
@@ -27,97 +28,97 @@
 #include "crazy/uuid.h"
 
 namespace crazy {
-	const uint64_t GetCurrentSS() {
-		return std::chrono::duration_cast<std::chrono::seconds>(
-			std::chrono::system_clock::now().time_since_epoch()).count();
-	}
-	const uint64_t GetCurrentMS() {
-		return std::chrono::duration_cast<std::chrono::milliseconds>(
-			std::chrono::system_clock::now().time_since_epoch()).count();
-	}
-	const uint64_t GetCurrentUS() {
-		return std::chrono::duration_cast<std::chrono::microseconds>(
-			std::chrono::system_clock::now().time_since_epoch()).count();
-	}
-	const uint64_t GetCurrentNS() {
-		return std::chrono::duration_cast<std::chrono::nanoseconds>(
-			std::chrono::system_clock::now().time_since_epoch()).count();
-	}
+    const uint64_t GetCurrentSS() {
+        return std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+    const uint64_t GetCurrentMS() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+    const uint64_t GetCurrentUS() {
+        return std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+    const uint64_t GetCurrentNS() {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
     const std::string CreateUUID() {
         std::random_device rd;
         std::mt19937 mt19937(rd());
         uuids::uuid_random_generator gen(mt19937);
         return uuids::to_string(gen());
     }
-	std::string StringUtil::Trim(const std::string& str, const std::string& delimit) {
-		auto begin = str.find_first_not_of(delimit);
-		if (begin == std::string::npos) {
-			return "";
-		}
-		auto end = str.find_last_not_of(delimit);
-		return str.substr(begin, end - begin + 1);
-	}
-	std::string StringUtil::TrimLeft(const std::string& str, const std::string& delimit) {
-		auto begin = str.find_first_not_of(delimit);
-		if (begin == std::string::npos) {
-			return "";
-		}
-		return str.substr(begin);
-	}
-	std::string StringUtil::TrimRight(const std::string& str, const std::string& delimit) {
-		auto end = str.find_last_not_of(delimit);
-		if (end == std::string::npos) {
-			return "";
-		}
-		return str.substr(0, end);
-	}
-	std::vector<std::string> StringUtil::Split(const std::string& str, const std::string& delimiter) {
-		std::vector<std::string> result;
-		if (delimiter.empty()) {
-			result.push_back(str);
-			return result;
-		}
+    std::string StringUtil::Trim(const std::string& str, const std::string& delimit) {
+        auto begin = str.find_first_not_of(delimit);
+        if (begin == std::string::npos) {
+            return "";
+        }
+        auto end = str.find_last_not_of(delimit);
+        return str.substr(begin, end - begin + 1);
+    }
+    std::string StringUtil::TrimLeft(const std::string& str, const std::string& delimit) {
+        auto begin = str.find_first_not_of(delimit);
+        if (begin == std::string::npos) {
+            return "";
+        }
+        return str.substr(begin);
+    }
+    std::string StringUtil::TrimRight(const std::string& str, const std::string& delimit) {
+        auto end = str.find_last_not_of(delimit);
+        if (end == std::string::npos) {
+            return "";
+        }
+        return str.substr(0, end);
+    }
+    std::vector<std::string> StringUtil::Split(const std::string& str, const std::string& delimiter) {
+        std::vector<std::string> result;
+        if (delimiter.empty()) {
+            result.push_back(str);
+            return result;
+        }
 
-		size_t start = 0;
-		size_t end = str.find(delimiter);
-		size_t delimiterLength = delimiter.length();
+        size_t start = 0;
+        size_t end = str.find(delimiter);
+        size_t delimiterLength = delimiter.length();
 
-		while (end != std::string::npos) {
-			result.push_back(str.substr(start, end - start));
-			start = end + delimiterLength;
-			end = str.find(delimiter, start);
-		}
-		result.push_back(str.substr(start));
+        while (end != std::string::npos) {
+            result.push_back(str.substr(start, end - start));
+            start = end + delimiterLength;
+            end = str.find(delimiter, start);
+        }
+        result.push_back(str.substr(start));
 
-		return result;
-	}
+        return result;
+    }
     std::string StringUtil::ToUpper(const std::string& str) {
         auto result = str;
         std::transform(result.begin(), result.end(), result.begin(), ::toupper);
         return result;
     }
-	std::string StringUtil::ToLower(const std::string& str) {
+    std::string StringUtil::ToLower(const std::string& str) {
         auto result = str;
         std::transform(result.begin(), result.end(), result.begin(), ::tolower);
         return result;
     }
-	std::string PathUtil::GetExecutablePath() {
+    std::string PathUtil::GetExecutablePath() {
 #ifdef _WIN32
-		char buffer[MAX_PATH];
-		DWORD length = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-		if (length == 0) {
-			throw std::runtime_error("Failed to get executable path");
-		}
-		return std::string(buffer, length);
+        char buffer[MAX_PATH];
+        DWORD length = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+        if (length == 0) {
+            throw std::runtime_error("Failed to get executable path");
+        }
+        return std::string(buffer, length);
 #else
-		char result[PATH_MAX];
-		ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-		if (count == -1) {
-			throw std::runtime_error("Failed to get executable path");
-		}
-		return std::string(result, count);
+        char result[PATH_MAX];
+        ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+        if (count == -1) {
+            throw std::runtime_error("Failed to get executable path");
+        }
+        return std::string(result, count);
 #endif
-	}
+    }
     std::string PathUtil::GetExecutableName() {
         auto executablePath = GetExecutablePath();
 #if defined(_WIN32)
@@ -133,32 +134,32 @@ namespace crazy {
         return name;
 #endif
     }
-	std::string PathUtil::GetExecutableDirectory() {
-		std::string exePath = GetExecutablePath();
-		return std::filesystem::path(exePath).parent_path().string();
-	}
-	std::string PathUtil::GetCurrentWorkingDirectory() {
+    std::string PathUtil::GetExecutableDirectory() {
+        std::string exePath = GetExecutablePath();
+        return std::filesystem::path(exePath).parent_path().string();
+    }
+    std::string PathUtil::GetCurrentWorkingDirectory() {
 #ifdef _WIN32
-		char buffer[MAX_PATH];
-		if (_getcwd(buffer, MAX_PATH) == nullptr) {
-			throw std::runtime_error("Failed to get current working directory");
-		}
-		return buffer;
+        char buffer[MAX_PATH];
+        if (_getcwd(buffer, MAX_PATH) == nullptr) {
+            throw std::runtime_error("Failed to get current working directory");
+        }
+        return buffer;
 #else
-		char buffer[PATH_MAX];
-		if (getcwd(buffer, sizeof(buffer)) == nullptr) {
-			throw std::runtime_error("Failed to get current working directory");
-		}
-		return buffer;
+        char buffer[PATH_MAX];
+        if (getcwd(buffer, sizeof(buffer)) == nullptr) {
+            throw std::runtime_error("Failed to get current working directory");
+        }
+        return buffer;
 #endif
-	}
-	bool PathUtil::SetCurrentWorkingDirectory(const std::string& path) {
+    }
+    bool PathUtil::SetCurrentWorkingDirectory(const std::string& path) {
 #ifdef _WIN32
-		return _chdir(path.c_str()) == 0;
+        return _chdir(path.c_str()) == 0;
 #else
-		return chdir(path.c_str()) == 0;
+        return chdir(path.c_str()) == 0;
 #endif
-	}
+    }
     std::string PathUtil::GetTempDirectory() {
 #ifdef _WIN32
         char buffer[MAX_PATH];
@@ -179,39 +180,39 @@ namespace crazy {
         return "/tmp";
 #endif
     }
-	bool PathUtil::PathExists(const std::string& path) {
-		return std::filesystem::exists(path);
-	}
-	bool PathUtil::IsAbsolutePath(const std::string& path) {
+    bool PathUtil::PathExists(const std::string& path) {
+        return std::filesystem::exists(path);
+    }
+    bool PathUtil::IsAbsolutePath(const std::string& path) {
 #ifdef _WIN32
-		if (path.size() >= 2 && path[1] == ':') {
-			return true;
-		}
-		if (path.size() >= 2 && path[0] == '\\' && path[1] == '\\') {
-			return true;
-		}
-		return false;
+        if (path.size() >= 2 && path[1] == ':') {
+            return true;
+        }
+        if (path.size() >= 2 && path[0] == '\\' && path[1] == '\\') {
+            return true;
+        }
+        return false;
 #else
-		return !path.empty() && path[0] == '/';
+        return !path.empty() && path[0] == '/';
 #endif
-	}
+    }
     std::string PathUtil::JoinPath(const std::string& path1, const std::string& path2) {
         return (std::filesystem::path(path1) / path2).string();
     }
 
-	std::string PathUtil::GetFileName(const std::string& path) {
-		return std::filesystem::path(path).filename().string();
-	}
-	std::string PathUtil::GetDirectoryName(const std::string& path) {
-		return std::filesystem::path(path).parent_path().string();
-	}
-	std::string PathUtil::GetFileExtension(const std::string& path) {
-		return std::filesystem::path(path).extension().string();
-	}
-	std::string PathUtil::RemoveFileExtension(const std::string& path) {
-		std::filesystem::path p(path);
-		return p.replace_extension().string();
-	}
+    std::string PathUtil::GetFileName(const std::string& path) {
+        return std::filesystem::path(path).filename().string();
+    }
+    std::string PathUtil::GetDirectoryName(const std::string& path) {
+        return std::filesystem::path(path).parent_path().string();
+    }
+    std::string PathUtil::GetFileExtension(const std::string& path) {
+        return std::filesystem::path(path).extension().string();
+    }
+    std::string PathUtil::RemoveFileExtension(const std::string& path) {
+        std::filesystem::path p(path);
+        return p.replace_extension().string();
+    }
     bool PathUtil::CreateDir(const std::string& path, bool create_parents) {
         if (create_parents) {
             return PathUtil::CreateDirectories(path);
@@ -376,5 +377,43 @@ namespace crazy {
         catch (...) {
             return false;
         }
+    }
+    void ThreadUtil::SetThreadName(const std::string& name) {
+#ifdef _WIN32
+        int wideLen = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), -1, nullptr, 0);
+        if (wideLen > 0) {
+            std::wstring wideName(wideLen, L'\0');
+            MultiByteToWideChar(CP_UTF8, 0, name.c_str(), -1, &wideName[0], wideLen);
+            SetThreadDescription(GetCurrentThread(), wideName.c_str());
+        }
+#else
+        pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());
+#endif
+    }
+
+    std::string ThreadUtil::GetThreadName() {
+#ifdef _WIN32
+        PWSTR wideName = nullptr;
+        HRESULT hr = GetThreadDescription(GetCurrentThread(), &wideName);
+        if (FAILED(hr) || !wideName) {
+            return "";
+        }
+        int utf8Len = WideCharToMultiByte(CP_UTF8, 0, wideName, -1,
+            nullptr, 0, nullptr, nullptr);
+        std::string result;
+        if (utf8Len > 0) {
+            result.resize(utf8Len - 1);
+            WideCharToMultiByte(CP_UTF8, 0, wideName, -1,
+                &result[0], utf8Len, nullptr, nullptr);
+        }
+        LocalFree(wideName);
+        return result;
+#else
+        char buffer[16] = { 0 };
+        if (pthread_getname_np(pthread_self(), buffer, sizeof(buffer)) == 0) {
+            return std::string(buffer);
+        }
+        return "";
+#endif
     }
 }

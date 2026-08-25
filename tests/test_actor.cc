@@ -38,6 +38,7 @@ protected:
 int32_t main(int32_t argc, char** argv) {
 	crazy::Application app(argc, argv);
 
+	app.registerActor<crazy::TelnetServiceActor>("telnet_service");
 	app.registerActor<crazy::ServiceActor>("service_actor");
 	app.registerActor<TestService>("test_service");
 

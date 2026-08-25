@@ -9,9 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG /utf-8")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb -g -DNDEBUG /utf-8")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -ggdb -g -DNDEBUG /utf-8")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /D_DEBUG /utf-8")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /DNDEBUG /utf-8")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /Zi /DNDEBUG /utf-8")
 else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb -g -DNDEBUG")
@@ -25,7 +25,7 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-file(GLOB_RECURSE SOURCES 
+file(GLOB_RECURSE SOURCES
     "src/crazy/*.cpp"
     "src/crazy/encryption/*.cpp"
     "src/crazy/net/*.cpp"
@@ -35,6 +35,7 @@ file(GLOB_RECURSE SOURCES
 
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/src/third_party")
 set(MYSQL_ROOT_DIR "${THIRD_PARTY_DIR}/MySQL")
+set(CLICKHOUSE_ROOT_DIR "${THIRD_PARTY_DIR}/clickhouse")
 
 set(GIT_COMMIT "")
 set(GIT_BRANCH "")
@@ -55,21 +56,82 @@ if(WIN32)
     else()
         set(ARCH "x86")
     endif()
-    
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(MYSQL_LIB_PATH "${MYSQL_ROOT_DIR}/lib/windows/${ARCH}/debug")
-    else()
-        set(MYSQL_LIB_PATH "${MYSQL_ROOT_DIR}/lib/windows/${ARCH}/release")
-    endif()
-    set(MYSQL_LIB_FILE "${MYSQL_LIB_PATH}/mysqlclient.lib")
-    
+
+    set(MYSQL_LIB_DEBUG_FILE "${MYSQL_ROOT_DIR}/lib/windows/${ARCH}/debug/mysqlclient.lib")
+    set(MYSQL_LIB_RELEASE_FILE "${MYSQL_ROOT_DIR}/lib/windows/${ARCH}/release/mysqlclient.lib")
+
+    set(CLICKHOUSE_LIB_DEBUG_DIR "${CLICKHOUSE_ROOT_DIR}/lib/windows/${ARCH}/debug")
+    set(CLICKHOUSE_LIB_RELEASE_DIR "${CLICKHOUSE_ROOT_DIR}/lib/windows/${ARCH}/release")
 else()
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set(MYSQL_LIB_PATH "${MYSQL_ROOT_DIR}/lib/linux/x64")
+        set(CLICKHOUSE_LIB_DIR "${CLICKHOUSE_ROOT_DIR}/lib/linux/x64/release")
     else()
         set(MYSQL_LIB_PATH "${MYSQL_ROOT_DIR}/lib/linux/x86")
+        set(CLICKHOUSE_LIB_DIR "${CLICKHOUSE_ROOT_DIR}/lib/linux/x86/release")
     endif()
+
     set(MYSQL_LIB_FILE "${MYSQL_LIB_PATH}/libmysqlclient.a")
+endif()
+
+set(MYSQL_LINK_LIBS "")
+if(WIN32)
+    if(EXISTS ${MYSQL_LIB_DEBUG_FILE} AND EXISTS ${MYSQL_LIB_RELEASE_FILE})
+        list(APPEND MYSQL_LINK_LIBS
+            debug ${MYSQL_LIB_DEBUG_FILE}
+            optimized ${MYSQL_LIB_RELEASE_FILE}
+        )
+        message(STATUS "MySQL Debug: ${MYSQL_LIB_DEBUG_FILE}")
+        message(STATUS "MySQL Release: ${MYSQL_LIB_RELEASE_FILE}")
+    else()
+        message(WARNING "MySQL client library not found")
+    endif()
+elseif(EXISTS ${MYSQL_LIB_FILE})
+    list(APPEND MYSQL_LINK_LIBS ${MYSQL_LIB_FILE})
+    message(STATUS "MySQL: ${MYSQL_LIB_FILE}")
+else()
+    message(WARNING "MySQL client library not found: ${MYSQL_LIB_FILE}")
+endif()
+
+set(CLICKHOUSE_LINK_LIBS "")
+if(WIN32)
+    set(CLICKHOUSE_LIB_NAMES
+        clickhouse.lib
+        absl_int128.lib
+        cityhash.lib
+        lz4.lib
+        zstdstatic.lib
+    )
+    foreach(CH_LIB_NAME ${CLICKHOUSE_LIB_NAMES})
+        set(CH_DEBUG_LIB "${CLICKHOUSE_LIB_DEBUG_DIR}/${CH_LIB_NAME}")
+        set(CH_RELEASE_LIB "${CLICKHOUSE_LIB_RELEASE_DIR}/${CH_LIB_NAME}")
+        if(EXISTS ${CH_DEBUG_LIB} AND EXISTS ${CH_RELEASE_LIB})
+            list(APPEND CLICKHOUSE_LINK_LIBS
+                debug ${CH_DEBUG_LIB}
+                optimized ${CH_RELEASE_LIB}
+            )
+            message(STATUS "ClickHouse Debug: ${CH_DEBUG_LIB}")
+            message(STATUS "ClickHouse Release: ${CH_RELEASE_LIB}")
+        else()
+            message(WARNING "ClickHouse library not found: ${CH_LIB_NAME}")
+        endif()
+    endforeach()
+else()
+    set(CLICKHOUSE_LIBS
+        "${CLICKHOUSE_LIB_DIR}/libclickhouse.a"
+        "${CLICKHOUSE_LIB_DIR}/libabsl_int128.a"
+        "${CLICKHOUSE_LIB_DIR}/libcityhash.a"
+        "${CLICKHOUSE_LIB_DIR}/liblz4.a"
+        "${CLICKHOUSE_LIB_DIR}/libzstdstatic.a"
+    )
+    foreach(CH_LIB ${CLICKHOUSE_LIBS})
+        if(EXISTS ${CH_LIB})
+            list(APPEND CLICKHOUSE_LINK_LIBS ${CH_LIB})
+            message(STATUS "ClickHouse: ${CH_LIB}")
+        else()
+            message(WARNING "ClickHouse: ${CH_LIB}")
+        endif()
+    endforeach()
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -78,35 +140,37 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/crazy>
+        $<BUILD_INTERFACE:${CLICKHOUSE_ROOT_DIR}/include>
 )
 
-# 基础依赖
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
-# MySQL 直接链接到主库
-if(EXISTS ${MYSQL_LIB_FILE})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${MYSQL_LIB_FILE})
-    message(STATUS "链接 MySQL 客户端库: ${MYSQL_LIB_FILE}")
-else()
-    message(WARNING "未找到 MySQL 客户端库: ${MYSQL_LIB_FILE}")
+if(MYSQL_LINK_LIBS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${MYSQL_LINK_LIBS})
 endif()
 
-# 系统库依赖 - 在 MySQL 之后链接
+if(CLICKHOUSE_LINK_LIBS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${CLICKHOUSE_LINK_LIBS})
+endif()
+
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE dl pthread)
 endif()
 
-# 测试程序
 file(COPY ${CMAKE_SOURCE_DIR}/tests/app.ini DESTINATION ${CMAKE_BINARY_DIR}/config/)
+
 function(add_crazy_test test_name)
     add_executable(${test_name} tests/${test_name}.cc)
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
-    
-    # 测试程序也需要 MySQL 和系统库（按正确顺序）
-    if(EXISTS ${MYSQL_LIB_FILE})
-        target_link_libraries(${test_name} PRIVATE ${MYSQL_LIB_FILE})
+
+    if(MYSQL_LINK_LIBS)
+        target_link_libraries(${test_name} PRIVATE ${MYSQL_LINK_LIBS})
     endif()
-    
+
+    if(CLICKHOUSE_LINK_LIBS)
+        target_link_libraries(${test_name} PRIVATE ${CLICKHOUSE_LINK_LIBS})
+    endif()
+
     if(UNIX)
         target_link_libraries(${test_name} PRIVATE dl pthread)
     endif()
@@ -125,3 +189,4 @@ add_crazy_test(test_encryption)
 add_crazy_test(test_date_time)
 add_crazy_test(test_key_value_pair)
 add_crazy_test(test_mmap)
+add_crazy_test(test_clickhouse)

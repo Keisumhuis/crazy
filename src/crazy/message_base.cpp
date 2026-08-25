@@ -1,6 +1,9 @@
 #include "crazy/message_base.h"
 
 namespace crazy {
+	MessageBase::ptr MessageBase::clone() const {
+		return std::make_shared<MessageBase>(*this);
+	}
 	void MessageBase::setSource(const std::string& source) {
 		source_ = source;
 	}

@@ -721,7 +721,6 @@ namespace crazy {
                 );
             }
 
-            CRAZY_SYSTEM_DEBUG() << "Executed SQL: " << sql;
             return store_result();
         }
 

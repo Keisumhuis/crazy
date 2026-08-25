@@ -12,6 +12,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -510,6 +511,8 @@ namespace crazy {
         Logger::ptr getLogger(const std::string& name);    
 
     private:
+        //! 日志控制器管理互斥锁
+        std::mutex mutex_;
         //! 日志控制器
         std::unordered_map<std::string, Logger::ptr> loggers_;
     };

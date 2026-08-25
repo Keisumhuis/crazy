@@ -42,9 +42,13 @@
 #include "crazy/mysql/mysql_connection_pool.h"
 #include "crazy/mysql/mysql_native_connection.h"
 
+#include "crazy/clickhouse/clickhouse_connection.h"
+#include "crazy/clickhouse/clickhouse_connection_pool.h"
+
 #include "crazy/net/acceptor.h"
 #include "crazy/net/client_actor.h"
 #include "crazy/net/local_socket.h"
 #include "crazy/net/selector.h"
 #include "crazy/net/service_actor.h"
 #include "crazy/net/socket.h"
+#include "crazy/net/telnet_service_actor.h"

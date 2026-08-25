@@ -36,4 +36,4 @@ build
 out
 out_linux
 out_windows
-doc
+doc/html/

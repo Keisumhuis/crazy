@@ -71,7 +71,6 @@ namespace crazy {
             return false;
         }
 #endif
-        CRAZY_SYSTEM_DEBUG() << "file lock success, path = " << filePath_;
         return true;
     }
     bool FileLock::unlock() {
@@ -92,7 +91,6 @@ namespace crazy {
             return false;
         }
 #endif
-        CRAZY_SYSTEM_DEBUG() << "file unlock success, path = " << filePath_;
         return true;
     }
     bool FileLock::tryLock() {

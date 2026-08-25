@@ -22,6 +22,9 @@ namespace crazy {
 	void ThreadPool::enqueueRunnable(std::function<void()> runnable) {
 		getActorImplement()->enqueueFunction(runnable);
 	}
+	void ThreadPool::enqueueRunnable(std::function<void()> runnable, int32_t threadIndex) {
+		threads_[threadIndex % threadSize_]->enqueueFunction(std::move(runnable));
+	}
 	ActorInterface::ptr ThreadPool::getActorImplement() {
 		return threads_[index_++ % threadSize_];
 	}

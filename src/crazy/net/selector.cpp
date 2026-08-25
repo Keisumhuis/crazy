@@ -20,6 +20,17 @@
 #include "crazy/utils.h"
 
 namespace crazy {
+    namespace {
+        std::tm LocalTime(time_t time) {
+            std::tm tm = {};
+#ifdef _WIN32
+            localtime_s(&tm, &time);
+#else
+            localtime_r(&time, &tm);
+#endif
+            return tm;
+        }
+    }
 
     Timer::Timer(const std::string& name, uint64_t interval
         , uint64_t triggerTimestime, std::function<void()> callback)
@@ -36,11 +47,6 @@ namespace crazy {
         epoll_ = epoll_create1(0);
         if (!epoll_) {
             throw std::runtime_error("Failed to create epoll");
-        }
-        SOCKET sockets[2];
-        if (socket(AF_INET, SOCK_STREAM, 0) == INVALID_SOCKET) {
-            epoll_close(epoll_);
-            throw std::runtime_error("Failed to create socket");
         }
         wakeFd_ = socket(AF_INET, SOCK_STREAM, 0);
         wakeWriteFd_ = socket(AF_INET, SOCK_STREAM, 0);
@@ -159,7 +165,11 @@ namespace crazy {
     }
 
     void Selector::registerTimer(const std::string& name, uint32_t milliseconds, std::function<void()> callback) {
-        timers_[GetCurrentMS() + milliseconds] = std::make_shared<Timer>(name, milliseconds, GetCurrentMS() + milliseconds, callback);
+        uint64_t triggerTime = GetCurrentMS() + milliseconds;
+        while (timers_.count(triggerTime)) {
+            ++triggerTime;
+        }
+        timers_[triggerTime] = std::make_shared<Timer>(name, milliseconds, triggerTime, callback);
         wakeup();
     }
 
@@ -268,7 +278,7 @@ namespace crazy {
 
         auto now = std::chrono::system_clock::now();
         auto now_time_t = std::chrono::system_clock::to_time_t(now);
-        std::tm now_tm = *std::localtime(&now_time_t);
+        std::tm now_tm = LocalTime(now_time_t);
 
         int64_t min_interval = -1;
 
@@ -355,23 +365,30 @@ namespace crazy {
         }
 
         auto currentTime = GetCurrentMS();
-        auto tmpTimer = timers_;
-        for (auto it = tmpTimer.begin(); it != tmpTimer.end(); ) {
-            if (it->second->triggerTimestime_ <= currentTime) {
-                if (it->second->callback_) {
-                    it->second->callback_();
-                }
-                it->second->triggerTimestime_ = currentTime + it->second->interval_;
-                ++it;
+        std::vector<Timer::ptr> expiredTimers;
+        for (auto it = timers_.begin(); it != timers_.end();) {
+            if (it->second->triggerTimestime_ > currentTime) {
+                break;
             }
-            else {
-                ++it;
+            expiredTimers.push_back(it->second);
+            it = timers_.erase(it);
+        }
+
+        for (auto& timer : expiredTimers) {
+            if (timer->callback_) {
+                timer->callback_();
             }
+            uint64_t nextTriggerTime = GetCurrentMS() + timer->interval_;
+            while (timers_.count(nextTriggerTime)) {
+                ++nextTriggerTime;
+            }
+            timer->triggerTimestime_ = nextTriggerTime;
+            timers_[nextTriggerTime] = timer;
         }
 
         now = std::chrono::system_clock::now();
         now_time_t = std::chrono::system_clock::to_time_t(now);
-        now_tm = *std::localtime(&now_time_t);
+        now_tm = LocalTime(now_time_t);
 
         for (auto& it : timePointTasks_) {
             auto& task = it.second;
