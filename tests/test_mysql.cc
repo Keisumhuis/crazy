@@ -7,7 +7,7 @@
 
 int main() {
     auto connection = std::make_shared<crazy::MySQLConnection>();
-    if (!connection->connect("rm-bp14q5t118g61ums5do.mysql.rds.aliyuncs.com", "rhino_trader4", "wbtcWKeb6dVbbnpE7ap8")) {
+    if (!connection->connect("127.0.0.1", "root", "123456")) {
         CRAZY_ROOT_ERROR() << "connect mysql fail, error = " << connection->get_errno()
             << ", error message = " << connection->get_error_message();
         return -1;
