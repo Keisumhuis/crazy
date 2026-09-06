@@ -7,7 +7,7 @@
  * @brief 全局 session.
  */
 static uint64_t GenSession() {
-	static uint64_t g_session = 1;
+	static std::atomic<uint64_t> g_session{1};
 	if (g_session >= UINT64_MAX) {
 		g_session = 1;
 	}

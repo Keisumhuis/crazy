@@ -11,6 +11,6 @@
 #pragma once
 
 //! 当前提交
-const char* G_GIT_COMMIT = "815057a3dbd516736068d1070609fb78683b8d93";
+const char* G_GIT_COMMIT = "ca7286ef4d03127558a145db410b4cba77921fc8";
 //! 当前分支
-const char* G_GIT_BRANCH = "master";
+const char* G_GIT_BRANCH = "http";

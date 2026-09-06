@@ -42,6 +42,8 @@
 #include "crazy/mysql/mysql_connection_pool.h"
 #include "crazy/mysql/mysql_native_connection.h"
 
+#include "crazy/http_application.h"
+
 #include "crazy/clickhouse/clickhouse_connection.h"
 #include "crazy/clickhouse/clickhouse_connection_pool.h"
 
@@ -52,3 +54,12 @@
 #include "crazy/net/service_actor.h"
 #include "crazy/net/socket.h"
 #include "crazy/net/telnet_service_actor.h"
+
+#include "crazy/net/http/http_header.h"
+#include "crazy/net/http/http_multipart.h"
+#include "crazy/net/http/http_message_base.h"
+#include "crazy/net/http/http_request.h"
+#include "crazy/net/http/http_router.h"
+#include "crazy/net/http/http_response.h"
+#include "crazy/net/http/http_version.h"
+#include "crazy/net/http/http11_common.h"

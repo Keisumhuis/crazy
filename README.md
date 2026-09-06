@@ -17,6 +17,7 @@
 | Application 与 Actor | [doc/README.md#application-与-actor](doc/README.md#application-与-actor) |
 | 命令行向 Actor 发消息 | [doc/README.md#命令行向-actor-发消息](doc/README.md#命令行向-actor-发消息) |
 | 网络通信 | [doc/README.md#网络通信](doc/README.md#网络通信) |
+| HTTP 与 WebSocket | [doc/README.md#http-与-websocket](doc/README.md#http-与-websocket) |
 | 日志与配置 | [doc/README.md#日志系统](doc/README.md#日志系统) / [配置管理](doc/README.md#配置管理) |
 | 加密模块 | [doc/README.md#加密模块](doc/README.md#加密模块) |
 | JSON、二进制协议、反射 | [doc/README.md#json-序列化](doc/README.md#json-序列化) / [二进制协议与反射](doc/README.md#二进制协议与反射) |

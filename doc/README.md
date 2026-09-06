@@ -12,6 +12,7 @@
 | Actor | 独立线程、消息队列、异步任务队列、命令行消息处理、普通消息处理 | `actor_interface.h`, `message_base.h` |
 | Daemon | `-d` 守护模式参数解析、supervisor/worker 角色、worker 拉起 | `daemon.h` |
 | 网络通信 | IPv4 Socket、本地 Socket、Acceptor/Connection、Session、Encoder/Decoder、Selector、定时器、ServiceActor/ClientActor | `net/*.h` |
+| HTTP | HTTP/1.1 服务端路由、HTTP 同步客户端、multipart/form-data 上传、WebSocket 服务端/客户端 | `http_application.h`, `net/http/*.h` |
 | 日志 | trace/debug/info/warn/error/fatal，多 Logger，控制台/文件 Appender，自定义格式 | `logger.h` |
 | 配置 | INI 文件/目录加载，字符串、整数、浮点、布尔读取，默认值，section 检查 | `config.h` |
 | 加密 | Base64 编码/解码、MD5 哈希 | `encryption/base64.h`, `encryption/md5.h` |
@@ -282,6 +283,126 @@ decoder.registerParseFinishCallback([](crazy::MessageBase::ptr message) {
     CRAZY_SYSTEM_INFO() << message->getData();
 });
 decoder.parse();
+```
+
+### HTTP 与 WebSocket
+
+`HttpApplication` 在 `Application` 基础上提供 HTTP/1.1 服务和 WebSocket 服务。
+
+#### HTTP 服务端
+
+```cpp
+#include "crazy/http_application.h"
+
+int main(int argc, char** argv) {
+    crazy::HttpApplication app(argc, argv);
+    app.listen(8080, "0.0.0.0");
+
+    // 注册 GET 路由（自由函数或 lambda）
+    app.registerHttpHandler<crazy::GET>("/", [](crazy::HttpRequest& request, crazy::HttpResponse& response) {
+        response.setBody("hello crazy");
+    });
+
+    // 注册多方法路由
+    app.registerHttpHandler<crazy::GET, crazy::POST>(
+        "/user", [](crazy::HttpRequest& request, crazy::HttpResponse& response) {
+            response.setBody("user");
+        });
+
+    // 注册成员函数路由并绑定对象
+    // app.registerHttpHandler<crazy::GET>("/path", &Controller::method, &controller);
+
+    app.exec();
+}
+```
+
+处理器签名固定为 `void(HttpRequest&, HttpResponse&)`，通过 `request` 读取方法、URI、请求头和请求体，通过 `response` 设置状态码、响应头和响应体。
+
+#### HTTP 客户端
+
+`HttpClient` 是同步阻塞客户端，支持常用方法、自定义请求头和 multipart/form-data 上传。
+
+```cpp
+#include "crazy/net/http/http_client.h"
+
+crazy::HttpClient client;
+
+// 设置默认请求头
+client.setHeader("Authorization", "Bearer token");
+
+// GET 请求
+client.get("http://127.0.0.1:8080/hello", [](crazy::HttpResponse::ptr response) {
+    CRAZY_SYSTEM_INFO() << response->body();
+});
+
+// POST 请求（带 body）
+client.post("http://127.0.0.1:8080/submit", "body content",
+    [](crazy::HttpResponse::ptr response) {
+        CRAZY_SYSTEM_INFO() << response->body();
+    });
+
+// 通用请求（DELETE / HEAD / OPTIONS / PATCH 等）
+client.request(crazy::HttpMethod::DELETE, "http://127.0.0.1:8080/user/1",
+    "", [](crazy::HttpResponse::ptr response) {});
+
+// multipart/form-data 上传
+std::vector<crazy::FormDataField> fields = {{"name", "alice"}};
+std::vector<crazy::FormDataFile> files = {
+    {"file", "a.txt", "text/plain", "file content"},
+};
+client.postForm("http://127.0.0.1:8080/upload", fields, files,
+    [](crazy::HttpResponse::ptr response) {});
+```
+
+#### WebSocket 服务端
+
+```cpp
+crazy::HttpApplication app(argc, argv);
+app.listen(8080, "0.0.0.0");
+
+// 连接建立回调
+app.registerWebSocketConnectCallback([](crazy::HttpSession::ptr session) {
+    session->sendText("welcome");
+});
+
+// 消息回调（收到消息后回显）
+app.registerWebSocketMessageCallback(
+    [](crazy::HttpSession::ptr session, const std::string& data,
+       crazy::HttpSession::WebSocketOpCode opcode) {
+        if (opcode == crazy::HttpSession::WebSocketOpCode::text) {
+            session->sendText(data);
+        }
+    });
+
+// 关闭回调
+app.registerWebSocketCloseCallback([]() {
+    CRAZY_SYSTEM_INFO() << "closed";
+});
+
+app.exec();
+```
+
+#### WebSocket 客户端
+
+```cpp
+#include "crazy/net/http/websocket_client.h"
+
+crazy::WebSocketClient ws;
+
+ws.registerConnectCallback([]() {
+    CRAZY_SYSTEM_INFO() << "connected";
+});
+ws.registerMessageCallback([](const std::string& data, crazy::WebSocketClient::OpCode opcode) {
+    CRAZY_SYSTEM_INFO() << "received: " << data;
+});
+ws.registerCloseCallback([]() {
+    CRAZY_SYSTEM_INFO() << "closed";
+});
+
+if (ws.connect("ws://127.0.0.1:8080/chat")) {
+    ws.sendText("hello");
+    ws.run();  // 阻塞接收循环，直到连接关闭
+}
 ```
 
 ## 日志系统
@@ -703,6 +824,10 @@ CMake 当前会生成以下测试/示例目标：
 - `test_config`
 - `test_date_time`
 - `test_encryption`
+- `test_http`
+- `test_http_application`
+- `test_http_client`
+- `test_http_client_e2e`
 - `test_json`
 - `test_key_value_pair`
 - `test_localsocket`
@@ -711,6 +836,10 @@ CMake 当前会生成以下测试/示例目标：
 - `test_mmap`
 - `test_mvvc_lock_wapper`
 - `test_protocol`
+- `test_websocket`
+- `test_websocket_client`
+- `test_websocket_client_e2e`
+- `test_websocket_server`
 
 运行示例：
 

@@ -33,7 +33,7 @@ namespace crazy {
 	/**
 	 * @brief 应用管理类.
 	 */
-	class Application final : public ActorInterface {
+	class Application : public ActorInterface {
 		friend class ActorInterface;
 	public:
 		/**
@@ -133,6 +133,10 @@ namespace crazy {
 		 */
 		void initSystem();
 		/**
+		 * @brief exec 进入主循环前启动业务服务.
+		 */
+		virtual void startServer();
+		/**
 		 * @brief 流转数据包.
 		 */
 		void routeMessage(const std::string& from, MessageBase::ptr message);
@@ -149,7 +153,7 @@ namespace crazy {
 		 */
 		void recvCommandTimeout();
 
-	private:
+	protected:
 		//! 命令行参数个数
 		int32_t argc_ = 0;
 		//! 命令行参数

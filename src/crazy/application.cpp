@@ -167,6 +167,7 @@ namespace crazy {
 		}
 		registerEvent(commandService_->socket(), SelectorEventType::read, std::bind(&Application::acceptCommandClient, this));
 
+		startServer();
 		ActorInterface::run();
 	}
 	std::map<std::string, std::string> Application::helps() {
@@ -392,5 +393,7 @@ namespace crazy {
 		cancelEvent(commandClient_->socket());
 		commandClient_->close();
 		CRAZY_SYSTEM_DEBUG() << "close command client, timeout";
+	}
+	void Application::startServer() {
 	}
 }

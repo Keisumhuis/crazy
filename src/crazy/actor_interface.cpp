@@ -65,6 +65,25 @@ namespace crazy {
 		Application::application()->enqueueRunnable(function);
 		wakeup();
 	}
+	void ActorInterface::registerEventOnThread(int32_t fd,
+		SelectorEventType type, std::function<void()> callback) {
+		enqueueFunction([this, fd, type, callback = std::move(callback)]() mutable {
+			registerEvent(fd, type, std::move(callback));
+		});
+	}
+	void ActorInterface::unregisterEventOnThread(int32_t fd, SelectorEventType type) {
+		enqueueFunction([this, fd, type]() {
+			unregisterEvent(fd, type);
+		});
+	}
+	void ActorInterface::cancelEventOnThread(int32_t fd, std::function<void()> callback) {
+		enqueueFunction([this, fd, callback = std::move(callback)]() {
+			cancelEvent(fd);
+			if (callback) {
+				callback();
+			}
+		});
+	}
 	uint32_t ActorInterface::messageQueueSize() {
 		CondMutexGuard guard(condMutex_);
 		return messageQueue_.size();

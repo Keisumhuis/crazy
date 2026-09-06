@@ -69,6 +69,18 @@ namespace crazy {
 		 */
 		void registerAsyncTask(std::function<void()> function);
 		/**
+		 * @brief 在 actor 线程中注册 epoll 事件.
+		 */
+		void registerEventOnThread(int32_t fd, SelectorEventType type, std::function<void()> callback);
+		/**
+		 * @brief 在 actor 线程中取消注册 epoll 事件.
+		 */
+		void unregisterEventOnThread(int32_t fd, SelectorEventType type);
+		/**
+		 * @brief 在 actor 线程中清除 fd 的所有事件.
+		 */
+		void cancelEventOnThread(int32_t fd, std::function<void()> callback = {});
+		/**
 		 * @brief 消息队列长度.
 		 */
 		uint32_t messageQueueSize();
