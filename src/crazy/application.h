@@ -122,12 +122,12 @@ namespace crazy {
 		 * @param request 请求消息
 		 * @param response 应答消息
 		 */
-		virtual void handleCommandLineMessgaBase(MessageBase::ptr request, MessageBase::ptr response);
+		virtual void handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response);
 		/**
 		 * @brief 处理普通消息.
 		 * @param message 消息
 		 */
-		virtual void handleMessgaBase(MessageBase::ptr message);
+		virtual void handleMessageBase(MessageBase::ptr message);
 		/**
 		 * @brief 初始化系统.
 		 */
@@ -177,7 +177,7 @@ namespace crazy {
 		//! 应用锁
 		FileLock appLock_;
 		//! ClickHouse连接池
-		ClickHouseConnectionPool::ptr clichouseConnectionPool_ = nullptr;
+		ClickHouseConnectionPool::ptr clickhouseConnectionPool_ = nullptr;
 		//! MySQL连接池
 		MySQLConnectionPool::ptr mysqlConnectionPool_ = nullptr;
 	};

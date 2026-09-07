@@ -20,7 +20,7 @@
 | 二进制协议 | 基础类型、枚举、数组、STL 容器、自定义类型二进制编解码 | `protocol.h`, `reflection.h` |
 | 数据库 | MySQL/ClickHouse 连接、查询、格式化 SQL、事务、连接池、健康检查 | `mysql/*.h`, `clickhouse/*.h` |
 | 内存与文件 | Buffer、跨平台 mmap、持久化 `MmapVector`、文件锁 | `buffer.h`, `mmap/*.h`, `file_lock.h` |
-| 并发工具 | 线程池、原子锁、条件互斥锁、MVCC 双版本读写包装 | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wapper.h` |
+| 并发工具 | 线程池、原子锁、条件互斥锁、MVCC 双版本读写包装 | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wrapper.h` |
 | 基础工具 | DateTime、TimeZone、URI、UUID、端序转换、字符串/路径/线程名工具、单例、不可拷贝基类、命令行 parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `endian.h`, `utils.h`, `singleton.h`, `command_line.h` |
 | 第三方组件 | RapidJSON、GSL、MySQL client、ClickHouse client 头文件/预编译库 | `src/crazy/rapidjson`, `src/crazy/gsl`, `src/third_party` |
 
@@ -80,7 +80,7 @@ public:
     }
 
 protected:
-    void handleCommandLineMessgaBase(
+    void handleCommandLineMessageBase(
         crazy::MessageBase::ptr request,
         crazy::MessageBase::ptr response) override {
         if (request->getData() == "ping") {
@@ -88,7 +88,7 @@ protected:
         }
     }
 
-    void handleMessgaBase(crazy::MessageBase::ptr message) override {
+    void handleMessageBase(crazy::MessageBase::ptr message) override {
         if (message->getCmd() == 100) {
             auto response = message->createResponse();
             response->setData("handled");
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 actor_name@command
 ```
 
-Actor 需要重写 `helps()` 和 `handleCommandLineMessgaBase()`。内置命令可通过：
+Actor 需要重写 `helps()` 和 `handleCommandLineMessageBase()`。内置命令可通过：
 
 ```bash
 ./your_app --help
@@ -278,7 +278,7 @@ crazy::Encoder encoder(buffer);
 encoder.stringify(msg);
 
 crazy::Decoder decoder(buffer);
-decoder.setMaxMessgaeLength(1024 * 1024);
+decoder.setMaxMessageLength(1024 * 1024);
 decoder.registerParseFinishCallback([](crazy::MessageBase::ptr message) {
     CRAZY_SYSTEM_INFO() << message->getData();
 });
@@ -442,12 +442,12 @@ crazy::Config::LoadConfigFile("./config.ini");
 crazy::Config::LoadConfigPath("./config");
 
 auto host = crazy::Config::GetString("server", "host", "127.0.0.1");
-auto port = crazy::Config::GetIntager("server", "port", 8080);
+auto port = crazy::Config::GetInteger("server", "port", 8080);
 auto debug = crazy::Config::GetBoolean("server", "debug", false);
 auto ratio = crazy::Config::GetDouble("server", "ratio", 1.0);
 
-if (crazy::Config::HasSession("server")) {
-    crazy::Config::EreaseValue("server", "debug");
+if (crazy::Config::HasSection("server")) {
+    crazy::Config::EraseValue("server", "debug");
 }
 ```
 
@@ -529,7 +529,7 @@ de >> id >> text;
 
 ```cpp
 auto conn = std::make_shared<crazy::MySQLConnection>();
-if (!conn->connect("127.0.0.1", "root", "password", "test", 3306)) {
+if (!conn->connect("127.0.0.1", "root", "<password>", "test", 3306)) {
     CRAZY_SYSTEM_ERROR() << conn->get_error_message();
     return;
 }
@@ -571,7 +571,7 @@ stmt->store_result();
 crazy::MySQLConnectionPoolConfig cfg;
 cfg.host = "127.0.0.1";
 cfg.user = "root";
-cfg.password = "password";
+cfg.password = "<password>";
 cfg.database = "test";
 cfg.min_connections = 2;
 cfg.max_connections = 10;
@@ -718,12 +718,12 @@ if (lock.tryLock()) {
 }
 ```
 
-### MVCCLockWapper
+### MVCCLockWrapper
 
 双版本读写包装：读操作无锁，写操作通过事务提交切换版本。
 
 ```cpp
-crazy::MVCCLockWapper<std::string> value("v1");
+crazy::MVCCLockWrapper<std::string> value("v1");
 
 {
     auto tx = value.beginWrite();
@@ -834,7 +834,7 @@ CMake 当前会生成以下测试/示例目标：
 - `test_lock`
 - `test_logger`
 - `test_mmap`
-- `test_mvvc_lock_wapper`
+- `test_mvcc_lock_wrapper`
 - `test_protocol`
 - `test_websocket`
 - `test_websocket_client`

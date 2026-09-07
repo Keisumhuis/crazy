@@ -17,8 +17,8 @@ namespace crazy {
 	}
 	void ClientActor::initConfig() {
 		config_.address_ = Config::GetString(name_, "address", "127.0.0.1");
-		config_.port_ = Config::GetIntager(name_, "port", 8901);
-		config_.heartbeat_interval_ = Config::GetIntager(name_, "heartbeat_interval", 5000);
+		config_.port_ = Config::GetInteger(name_, "port", 8901);
+		config_.heartbeat_interval_ = Config::GetInteger(name_, "heartbeat_interval", 5000);
 	}
 	void ClientActor::initClient() {
 		connection_->registerConnectedCallback(std::bind(&ClientActor::onConnected, this));
@@ -27,7 +27,7 @@ namespace crazy {
 		connection_->registerSelectEventRegisterCallback([this](int32_t fd, SelectorEventType type, std::function<void()> callback) {
 			this->registerEvent(fd, type, callback);
 			});
-		connection_->registerSelectEventUnRegisterCallback([this](int32_t fd, SelectorEventType type) {
+		connection_->registerSelectEventUnregisterCallback([this](int32_t fd, SelectorEventType type) {
 			this->unregisterEvent(fd, type);
 			});
 
@@ -35,7 +35,7 @@ namespace crazy {
 
 		connection_->connect(config_.address_, config_.port_);
 	}
-	void ClientActor::handleMessgaBase(MessageBase::ptr message) {
+	void ClientActor::handleMessageBase(MessageBase::ptr message) {
 		connection_->sendMessage(message);
 	}
 	void ClientActor::onCheckKeepLive() {

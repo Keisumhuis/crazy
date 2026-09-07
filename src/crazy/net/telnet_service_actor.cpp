@@ -25,7 +25,7 @@ namespace crazy {
 		initService();
 		ActorInterface::run();
 	}
-	void TelnetServiceActor::handleMessgaBase(MessageBase::ptr message) {
+	void TelnetServiceActor::handleMessageBase(MessageBase::ptr message) {
 		if (message->getCmd() != InternalCommand::command_line_response) {
 			return;
 		}
@@ -53,10 +53,10 @@ namespace crazy {
 	}
 	void TelnetServiceActor::initConfig() {
 		config_.address_ = Config::GetString(name_, "address", "0.0.0.0");
-		config_.port_ = static_cast<uint16_t>(Config::GetIntager(name_, "port", 2323));
-		config_.max_sessions_ = static_cast<uint32_t>(Config::GetIntager(name_, "max_sessions", 16));
-		config_.idle_timeout_ = static_cast<uint32_t>(Config::GetIntager(name_, "idle_timeout", 300000));
-		config_.command_timeout_ = static_cast<uint32_t>(Config::GetIntager(name_, "command_timeout", 10000));
+		config_.port_ = static_cast<uint16_t>(Config::GetInteger(name_, "port", 2323));
+		config_.max_sessions_ = static_cast<uint32_t>(Config::GetInteger(name_, "max_sessions", 16));
+		config_.idle_timeout_ = static_cast<uint32_t>(Config::GetInteger(name_, "idle_timeout", 300000));
+		config_.command_timeout_ = static_cast<uint32_t>(Config::GetInteger(name_, "command_timeout", 10000));
 		config_.password_ = Config::GetString(name_, "password", "");
 	}
 	void TelnetServiceActor::initService() {

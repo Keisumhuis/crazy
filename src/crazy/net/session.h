@@ -74,7 +74,7 @@ namespace crazy {
 		/**
 		 * @brief 注册取消注册select 事件函数.
 		 */
-		void registerSelectEventUnRegisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent);
+		void registerSelectEventUnregisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent);
 		/**
 		 * @brief 发送消息.
 		 */
@@ -96,7 +96,7 @@ namespace crazy {
 		/**
 		 * @brief 解析到完整报文.
 		 */
-		void onParseFinishMessgae(MessageBase::ptr message);
+		void onParseFinishMessage(MessageBase::ptr message);
 		/**
 		 * @brief 解析异常.
 		 */

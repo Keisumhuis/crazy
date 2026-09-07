@@ -13,15 +13,15 @@ namespace crazy {
 		listen(port, address);
 	}
 	void HttpApplication::startServer() {
-		const bool hasHttpConfig = Config::HasSession("HTTP") || Config::HasSession("http");
+		const bool hasHttpConfig = Config::HasSection("HTTP") || Config::HasSection("http");
 		if (httpServer_ == nullptr && !listenSet_ && !hasHttpConfig) {
 			return;
 		}
 
 		if (!listenSet_) {
-			const std::string section = Config::HasSession("HTTP") ? "HTTP" : "http";
+			const std::string section = Config::HasSection("HTTP") ? "HTTP" : "http";
 			address_ = Config::GetString(section, "address", "0.0.0.0");
-			port_ = static_cast<uint16_t>(Config::GetIntager(section, "port", 8080));
+			port_ = static_cast<uint16_t>(Config::GetInteger(section, "port", 8080));
 		}
 
 		auto server = ensureServer();

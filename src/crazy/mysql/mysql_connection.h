@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file mysql_connection.h
  * @author keisum (Keisumhuis@gmail.com)
  * @brief
@@ -177,7 +177,7 @@ namespace crazy {
             if (!statement_) {
                 throw MySQLStatementException("Statement is null");
             }
-            return statement_->stmt_prepare(sql);
+            return statement_->stmt_prepare(sql) == 0;
         }
 
         /**
@@ -207,7 +207,7 @@ namespace crazy {
             if (!statement_) {
                 throw MySQLStatementException("Statement is null");
             }
-            return statement_->stmt_execute();
+            return statement_->stmt_execute() == 0;
         }
 
         /**
@@ -215,7 +215,7 @@ namespace crazy {
          * @return bool 成功返回 true，否则 false
          */
         bool fetch() {
-            return statement_ ? statement_->stmt_fetch() : false;
+            return statement_ ? statement_->stmt_fetch() == 0 : false;
         }
 
         /**
@@ -223,7 +223,7 @@ namespace crazy {
          * @return bool 成功返回 true，否则 false
          */
         bool store_result() {
-            return statement_ ? statement_->stmt_store_result() : false;
+            return statement_ ? statement_->stmt_store_result() == 0 : false;
         }
 
         /**
@@ -386,6 +386,11 @@ namespace crazy {
             }
 
             if (success) {
+                lastHost_ = host;
+                lastUser_ = user;
+                lastPassword_ = password;
+                lastDatabase_ = db;
+                lastPort_ = port;
                 updateLastUsedTime();
                 CRAZY_SYSTEM_INFO() << "Connected to MySQL successfully, host = " << host;
             }
@@ -410,12 +415,13 @@ namespace crazy {
          * @note 需要预先存储连接参数
          */
         bool reconnect() {
+            if (lastHost_.empty() || lastUser_.empty()) {
+                return false;
+            }
             if (connection_) {
                 connection_->close();
-                // 注意：需要预先存储连接参数以便重连
-                return true;
             }
-            return false;
+            return connect(lastHost_, lastUser_, lastPassword_, lastDatabase_, lastPort_);
         }
 
         /**
@@ -682,19 +688,19 @@ namespace crazy {
         MySQLResult::ptr exec_fmt(const char* fmt, ...) {
             va_list args;
             va_start(args, fmt);
-            auto size = vsnprintf(nullptr, 0, fmt, args) + 1;
+            auto size = vsnprintf(nullptr, 0, fmt, args);
             va_end(args);
 
             if (size < 0) {
                 throw MySQLQueryException("Format string error");
             }
 
-            std::string sql;
-            sql.resize(size);
+            std::string sql(static_cast<size_t>(size) + 1, '\0');
 
             va_start(args, fmt);
-            vsnprintf(sql.data(), size, fmt, args);
+            vsnprintf(sql.data(), sql.size(), fmt, args);
             va_end(args);
+            sql.resize(static_cast<size_t>(size));
 
             return exec(sql);
         }
@@ -874,7 +880,13 @@ namespace crazy {
 
     private:
         ///< 最后使用时间
-        std::chrono::time_point<std::chrono::system_clock> lastUsedTime_ = std::chrono::system_clock::now();  
+        std::chrono::time_point<std::chrono::system_clock> lastUsedTime_ = std::chrono::system_clock::now();
+        ///< 最后的连接参数
+        std::string lastHost_;
+        std::string lastUser_;
+        std::string lastPassword_;
+        std::string lastDatabase_;
+        uint32_t lastPort_ = 3306;
         ///< 原生 MySQL 连接对象
         MySQLNativeConnection::ptr connection_;  
     };

@@ -18,8 +18,8 @@ namespace crazy {
 	}
 	void ServiceActor::initConfig() {
 		config_.address_ = Config::GetString(name_, "address", "0.0.0.0");
-		config_.port_ = Config::GetIntager(name_, "port", 8901);
-		config_.heartbeat_interval_ = Config::GetIntager(name_, "heartbeat_interval", 5000);
+		config_.port_ = Config::GetInteger(name_, "port", 8901);
+		config_.heartbeat_interval_ = Config::GetInteger(name_, "heartbeat_interval", 5000);
 	}
 	void ServiceActor::initService() {
 		if (!acceptor_->listen(config_.port_, config_.address_)) {
@@ -30,7 +30,7 @@ namespace crazy {
 		registerEvent(acceptor_->socket(), SelectorEventType::read, std::bind(&ServiceActor::onAccept, this));
 		registerTimer("heartbeat", config_.heartbeat_interval_, std::bind(&ServiceActor::onCheckKeepLive, this));
 	}
-	void ServiceActor::handleMessgaBase(MessageBase::ptr message) {
+	void ServiceActor::handleMessageBase(MessageBase::ptr message) {
 		if (message->getSessionId() == 0) {
 			for (auto& itSession : sessions_) {
 				itSession.second->sendMessage(message);
@@ -67,7 +67,7 @@ namespace crazy {
 		session->registerSelectEventRegisterCallback([this](int32_t fd, SelectorEventType type, std::function<void()> callback) {
 			this->registerEvent(fd, type, callback);
 			});
-		session->registerSelectEventUnRegisterCallback([this](int32_t fd, SelectorEventType type) {
+		session->registerSelectEventUnregisterCallback([this](int32_t fd, SelectorEventType type) {
 			this->unregisterEvent(fd, type);
 			});
 		

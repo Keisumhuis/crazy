@@ -22,7 +22,7 @@
 #include "crazy/key_value_pair.h"
 #include "crazy/logger.h"
 #include "crazy/message_base.h"
-#include "crazy/mvcc_lock_wapper.h"
+#include "crazy/mvcc_lock_wrapper.h"
 #include "crazy/nocopyable.h"
 #include "crazy/protocol.h"
 #include "crazy/reflection.h"
@@ -63,3 +63,5 @@
 #include "crazy/net/http/http_response.h"
 #include "crazy/net/http/http_version.h"
 #include "crazy/net/http/http11_common.h"
+
+#include "crazy/net/smtp/smtp_client.h"

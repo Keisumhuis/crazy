@@ -53,7 +53,7 @@ namespace crazy {
 		 * @param section 部分
 		 * @param key 键
 		 */
-		static int64_t GetIntager(const std::string& section, const std::string& key, const int64_t& defaultValue = {});
+		static int64_t GetInteger(const std::string& section, const std::string& key, const int64_t& defaultValue = {});
 		/**
 		 * @brief 获取配置文件中double参数值.
 		 * @param section 部分
@@ -71,12 +71,12 @@ namespace crazy {
 		 * @param section 部分
 		 * @param key 键
 		 */
-		static void EreaseValue(const std::string& section, const std::string& key);
+		static void EraseValue(const std::string& section, const std::string& key);
 		/**
 		 * @brief 获取是否有配置项.
 		 * @param section 部分
 		 */
-		static bool HasSession(const std::string& section);
+		static bool HasSection(const std::string& section);
 
 	private:
 		/**

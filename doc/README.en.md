@@ -19,7 +19,7 @@
 | Binary protocol | Primitive types, enums, arrays, STL containers, reflected custom types | `protocol.h`, `reflection.h` |
 | Databases | MySQL/ClickHouse connections, queries, formatted SQL, transactions, pools, health checks | `mysql/*.h`, `clickhouse/*.h` |
 | Memory and files | Buffer, cross-platform mmap, persistent `MmapVector`, file lock | `buffer.h`, `mmap/*.h`, `file_lock.h` |
-| Concurrency | Thread pool, atomic lock, condition mutex, MVCC double-version wrapper | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wapper.h` |
+| Concurrency | Thread pool, atomic lock, condition mutex, MVCC double-version wrapper | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wrapper.h` |
 | Utilities | DateTime, TimeZone, URI, UUID, endian conversion, string/path/thread-name utilities, singleton, noncopyable base, command-line parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `endian.h`, `utils.h`, `singleton.h`, `command_line.h` |
 | Third party | RapidJSON, GSL, MySQL client, ClickHouse client headers/prebuilt libs | `src/crazy/rapidjson`, `src/crazy/gsl`, `src/third_party` |
 
@@ -79,7 +79,7 @@ public:
     }
 
 protected:
-    void handleCommandLineMessgaBase(
+    void handleCommandLineMessageBase(
         crazy::MessageBase::ptr request,
         crazy::MessageBase::ptr response) override {
         if (request->getData() == "ping") {
@@ -87,7 +87,7 @@ protected:
         }
     }
 
-    void handleMessgaBase(crazy::MessageBase::ptr message) override {
+    void handleMessageBase(crazy::MessageBase::ptr message) override {
         if (message->getCmd() == 100) {
             auto response = message->createResponse();
             response->setData("handled");
@@ -128,7 +128,7 @@ Format:
 actor_name@command
 ```
 
-The Actor should override `helps()` and `handleCommandLineMessgaBase()`. Built-in commands are listed with:
+The Actor should override `helps()` and `handleCommandLineMessageBase()`. Built-in commands are listed with:
 
 ```bash
 ./your_app --help
@@ -275,7 +275,7 @@ crazy::Encoder encoder(buffer);
 encoder.stringify(msg);
 
 crazy::Decoder decoder(buffer);
-decoder.setMaxMessgaeLength(1024 * 1024);
+decoder.setMaxMessageLength(1024 * 1024);
 decoder.registerParseFinishCallback([](crazy::MessageBase::ptr message) {
     CRAZY_SYSTEM_INFO() << message->getData();
 });
@@ -319,12 +319,12 @@ crazy::Config::LoadConfigFile("./config.ini");
 crazy::Config::LoadConfigPath("./config");
 
 auto host = crazy::Config::GetString("server", "host", "127.0.0.1");
-auto port = crazy::Config::GetIntager("server", "port", 8080);
+auto port = crazy::Config::GetInteger("server", "port", 8080);
 auto debug = crazy::Config::GetBoolean("server", "debug", false);
 auto ratio = crazy::Config::GetDouble("server", "ratio", 1.0);
 
-if (crazy::Config::HasSession("server")) {
-    crazy::Config::EreaseValue("server", "debug");
+if (crazy::Config::HasSection("server")) {
+    crazy::Config::EraseValue("server", "debug");
 }
 ```
 
@@ -406,7 +406,7 @@ de >> id >> text;
 
 ```cpp
 auto conn = std::make_shared<crazy::MySQLConnection>();
-if (!conn->connect("127.0.0.1", "root", "password", "test", 3306)) {
+if (!conn->connect("127.0.0.1", "root", "<password>", "test", 3306)) {
     CRAZY_SYSTEM_ERROR() << conn->get_error_message();
     return;
 }
@@ -448,7 +448,7 @@ stmt->store_result();
 crazy::MySQLConnectionPoolConfig cfg;
 cfg.host = "127.0.0.1";
 cfg.user = "root";
-cfg.password = "password";
+cfg.password = "<password>";
 cfg.database = "test";
 cfg.min_connections = 2;
 cfg.max_connections = 10;
@@ -595,12 +595,12 @@ if (lock.tryLock()) {
 }
 ```
 
-### MVCCLockWapper
+### MVCCLockWrapper
 
 Double-version read/write wrapper: reads are lock-free; writes commit by switching versions.
 
 ```cpp
-crazy::MVCCLockWapper<std::string> value("v1");
+crazy::MVCCLockWrapper<std::string> value("v1");
 
 {
     auto tx = value.beginWrite();
@@ -707,7 +707,7 @@ CMake currently builds these test/example targets:
 - `test_lock`
 - `test_logger`
 - `test_mmap`
-- `test_mvvc_lock_wapper`
+- `test_mvcc_lock_wrapper`
 - `test_protocol`
 
 Run examples:

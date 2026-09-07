@@ -94,12 +94,12 @@ namespace crazy {
 		 * @brief 处理命令行消息.
 		 * @param message 消息
 		 */
-		virtual void handleCommandLineMessgaBase(MessageBase::ptr request, MessageBase::ptr response);
+		virtual void handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response);
 		/**
 		 * @brief 处理普通消息.
 		 * @param message 消息
 		 */
-		virtual void handleMessgaBase(MessageBase::ptr message);
+		virtual void handleMessageBase(MessageBase::ptr message);
 		/**
 		 * @brief 线程执行函数.
 		 */
@@ -115,7 +115,7 @@ namespace crazy {
 		 * @brief 处理消息.
 		 * @param message 消息
 		 */
-		void onRecvMessgaBase(MessageBase::ptr message);
+		void onRecvMessageBase(MessageBase::ptr message);
 		/**
 		 * @brief 判断消息是否为命令行消息
 		 * @param message 消息

@@ -39,10 +39,10 @@ namespace crazy {
 		return s_application;
 	}
 	ClickHouseConnectionPool::ptr Application::getClickHouseConnectionPool() {
-		if (!clichouseConnectionPool_) {
+		if (!clickhouseConnectionPool_) {
 			throw std::logic_error("clickhouse connection pool is't create");
 		}
-		return clichouseConnectionPool_;
+		return clickhouseConnectionPool_;
 	}
 	MySQLConnectionPool::ptr Application::getMySQLConnectionPool() {
 		if (!mysqlConnectionPool_) {
@@ -119,36 +119,36 @@ namespace crazy {
 			exit(0);
 		}
 		
-		if (Config::HasSession("MySQL")) {
+		if (Config::HasSection("MySQL")) {
 			MySQLConnectionPoolConfig mysqlConfig;
 			mysqlConfig.host = Config::GetString("MySQL", "host");
 			mysqlConfig.user = Config::GetString("MySQL", "user");
 			mysqlConfig.password = Config::GetString("MySQL", "password");
-			mysqlConfig.port = Config::GetIntager("MySQL", "port");
-			mysqlConfig.min_connections = Config::GetIntager("MySQL", "min_connections", 5);
-			mysqlConfig.max_connections = Config::GetIntager("MySQL", "max_connections", 20);
-			mysqlConfig.max_idle_time = Config::GetIntager("MySQL", "max_idle_time", 300);
-			mysqlConfig.max_wait_time = Config::GetIntager("MySQL", "max_wait_time", 30);
-			mysqlConfig.connection_timeout = Config::GetIntager("MySQL", "connection_timeout", 10);
+			mysqlConfig.port = Config::GetInteger("MySQL", "port");
+			mysqlConfig.min_connections = Config::GetInteger("MySQL", "min_connections", 5);
+			mysqlConfig.max_connections = Config::GetInteger("MySQL", "max_connections", 20);
+			mysqlConfig.max_idle_time = Config::GetInteger("MySQL", "max_idle_time", 300);
+			mysqlConfig.max_wait_time = Config::GetInteger("MySQL", "max_wait_time", 30);
+			mysqlConfig.connection_timeout = Config::GetInteger("MySQL", "connection_timeout", 10);
 			mysqlConnectionPool_ = std::make_shared<MySQLConnectionPool>(mysqlConfig);
 			mysqlConnectionPool_->start();
 		}
-		if (Config::HasSession("ClickHouse")) {
+		if (Config::HasSection("ClickHouse")) {
 			ClickHouseConnectionPoolConfig clickhouseConfig;
 			clickhouseConfig.host = Config::GetString("ClickHouse", "host");
 			clickhouseConfig.user = Config::GetString("ClickHouse", "user");
 			clickhouseConfig.password = Config::GetString("ClickHouse", "password");
-			clickhouseConfig.port = Config::GetIntager("ClickHouse", "port");
-			clickhouseConfig.min_connections = Config::GetIntager("ClickHouse", "min_connections", 5);
-			clickhouseConfig.max_connections = Config::GetIntager("ClickHouse", "max_connections", 20);
-			clickhouseConfig.max_idle_time = Config::GetIntager("ClickHouse", "max_idle_time", 300);
-			clickhouseConfig.max_wait_time = Config::GetIntager("ClickHouse", "max_wait_time", 30);
-			clickhouseConfig.connection_timeout = Config::GetIntager("ClickHouse", "connection_timeout", 10);
-			clichouseConnectionPool_ = std::make_shared<ClickHouseConnectionPool>(clickhouseConfig);
-			clichouseConnectionPool_->start();
+			clickhouseConfig.port = Config::GetInteger("ClickHouse", "port");
+			clickhouseConfig.min_connections = Config::GetInteger("ClickHouse", "min_connections", 5);
+			clickhouseConfig.max_connections = Config::GetInteger("ClickHouse", "max_connections", 20);
+			clickhouseConfig.max_idle_time = Config::GetInteger("ClickHouse", "max_idle_time", 300);
+			clickhouseConfig.max_wait_time = Config::GetInteger("ClickHouse", "max_wait_time", 30);
+			clickhouseConfig.connection_timeout = Config::GetInteger("ClickHouse", "connection_timeout", 10);
+			clickhouseConnectionPool_ = std::make_shared<ClickHouseConnectionPool>(clickhouseConfig);
+			clickhouseConnectionPool_->start();
 		}
 		
-		auto threadPoolCount = Config::GetIntager("global", "thread_pool_count", std::thread::hardware_concurrency());
+		auto threadPoolCount = Config::GetInteger("global", "thread_pool_count", std::thread::hardware_concurrency());
 		threadPool_ = std::make_shared<ThreadPool>(threadPoolCount < 1 ? 1 : static_cast<uint32_t>(threadPoolCount));
 		threadPool_->start();
 		actors_[name_] = ActorInterface::ptr(this, [](ActorInterface*) {});
@@ -188,8 +188,8 @@ namespace crazy {
 		if (mysqlConnectionPool_) {
 			mysqlConnectionPool_->stop();
 		}
-		if (clichouseConnectionPool_) {
-			clichouseConnectionPool_->stop();
+		if (clickhouseConnectionPool_) {
+			clickhouseConnectionPool_->stop();
 		}
 		exit(exitCode);
 	}
@@ -276,11 +276,10 @@ namespace crazy {
 		char szFileName[_MAX_PATH], szFilePath[_MAX_PATH];
 		char* pcName;
 		::GetModuleFileName(0, szFileName, _MAX_PATH);
-		::GetFullPathName(szFileName, _MAX_PATH, szFilePath, &pcName);
-		char szBuf[_MAX_PATH];
-		strcpy(szBuf, pcName);
-		*pcName = '\0';
-		SetCurrentDirectory(szFilePath);
+		if (::GetFullPathName(szFileName, _MAX_PATH, szFilePath, &pcName) != 0) {
+			*pcName = '\0';
+			SetCurrentDirectory(szFilePath);
+		}
 
 		WSADATA wsaData;
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -309,7 +308,7 @@ namespace crazy {
 	ActorInterface::ptr Application::getActorImplement() {
 		return threadPool_->getActorImplement();
 	}
-	void Application::handleCommandLineMessgaBase(MessageBase::ptr request, MessageBase::ptr response) {
+	void Application::handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response) {
 		auto commands = crazy::StringUtil::Split(request->getData());
 		if (commands.empty()) {
 			return;
@@ -331,7 +330,7 @@ namespace crazy {
 			response->setData(ss.str());
 		}
 	}
-	void Application::handleMessgaBase(MessageBase::ptr message) {
+	void Application::handleMessageBase(MessageBase::ptr message) {
 		if (message->getCmd() == InternalCommand::command_line_response) {
 			if (message->getComment().empty() && commandClient_ && commandClient_->active()) {
 				auto& commandLineResponse = message->getData();

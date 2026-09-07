@@ -34,7 +34,7 @@ public:
     using crazy::ActorInterface::ActorInterface;
 
 protected:
-    void handleCommandLineMessgaBase(
+    void handleCommandLineMessageBase(
         crazy::MessageBase::ptr request,
         crazy::MessageBase::ptr response) override {
         response->setData("ok: " + request->getData());

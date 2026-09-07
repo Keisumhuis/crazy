@@ -50,25 +50,35 @@ namespace crazy {
 		return true;
 	}
 	bool Socket::connect(const std::string& address, uint64_t port) {
-		if (!active()) {
-			initSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		}
+		addrinfo hints = {};
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
 
-		sockaddr_in connectSockaddr;
-		memset(&connectSockaddr, 0, sizeof(connectSockaddr));
-		connectSockaddr.sin_family = AF_INET;
-		connectSockaddr.sin_port = htons(port);
-
-		auto ip_addr = inet_addr(address.c_str());
-		if (ip_addr == INADDR_NONE) {
-			CRAZY_SYSTEM_ERROR() << "invalid ip address: " << address;
+		addrinfo* result = nullptr;
+		const std::string portString = std::to_string(port);
+		if (getaddrinfo(address.c_str(), portString.c_str(), &hints, &result) != 0) {
+			CRAZY_SYSTEM_ERROR() << "resolve address fail, addr = " << address << ":" << port;
 			return false;
 		}
-		connectSockaddr.sin_addr.s_addr = ip_addr;
 
-		if (::connect(socket_, (sockaddr*)&connectSockaddr, sizeof(connectSockaddr)) != 0) {
-			CRAZY_SYSTEM_ERROR() << "socket = " << socket_ << " errorno = "
-				<< WSAGetLastError() << " errstr = " << strerror(errno) << " addr = " << address << ":" << port;
+		bool connected = false;
+		for (auto* it = result; it != nullptr; it = it->ai_next) {
+			close();
+			initSocket(it->ai_family, it->ai_socktype, it->ai_protocol);
+			if (!active()) {
+				continue;
+			}
+			if (::connect(socket_, it->ai_addr, static_cast<int32_t>(it->ai_addrlen)) == 0) {
+				connected = true;
+				break;
+			}
+		}
+		freeaddrinfo(result);
+
+		if (!connected) {
+			CRAZY_SYSTEM_ERROR() << "socket connect fail, addr = " << address << ":" << port
+				<< ", errorno = " << WSAGetLastError() << " errstr = " << strerror(errno);
+			close();
 			return false;
 		}
 

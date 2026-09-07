@@ -22,7 +22,7 @@ protected:
 	 * @brief 处理命令行消息.
 	 * @param message 消息
 	 */
-	void handleCommandLineMessgaBase(crazy::MessageBase::ptr request, crazy::MessageBase::ptr response) override {
+	void handleCommandLineMessageBase(crazy::MessageBase::ptr request, crazy::MessageBase::ptr response) override {
 		auto commands = crazy::StringUtil::Split(request->getData());
 		if ("send_test" == commands[0]) {
 			auto message = std::make_shared<crazy::MessageBase>();
@@ -35,7 +35,7 @@ protected:
 	 * @brief 处理普通消息.
 	 * @param message 消息
 	 */
-	void handleMessgaBase(crazy::MessageBase::ptr message) override {
+	void handleMessageBase(crazy::MessageBase::ptr message) override {
 		if (message->getCmd() == 999) {
 			CRAZY_ROOT_DEBUG() << message->getData();
 		}

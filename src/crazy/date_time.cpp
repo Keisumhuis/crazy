@@ -279,7 +279,7 @@ namespace crazy {
 	uint32_t DateTime::second() const {
 		return second_;
 	}
-	uint32_t DateTime::timestamp() const {
+	time_t DateTime::timestamp() const {
 		return timestamp_;
 	}
 	WeekDay DateTime::weekDay() {

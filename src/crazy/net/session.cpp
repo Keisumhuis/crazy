@@ -21,7 +21,7 @@ namespace crazy {
 		, lastHeartbeatTimestamp_(GetCurrentMS())
 		, decoder_(recvBuffer_) 
 		, encoder_(sendBuffer_) {
-		decoder_.registerParseFinishCallback(std::bind(&Session::onParseFinishMessgae, this, std::placeholders::_1));
+		decoder_.registerParseFinishCallback(std::bind(&Session::onParseFinishMessage, this, std::placeholders::_1));
 		decoder_.registerParseExceptionCallback(std::bind(&Session::onParseException, this));
 	}
 	Session::~Session() {
@@ -84,7 +84,7 @@ namespace crazy {
 	void Session::registerSelectEventRegisterCallback(std::function<void(int32_t, SelectorEventType, std::function<void()>)> registerSelectEvent) {
 		registerSelectEvent_ = registerSelectEvent;
 	}
-	void Session::registerSelectEventUnRegisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent) {
+	void Session::registerSelectEventUnregisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent) {
 		unregisterSelectEvent_ = unregisterSelectEvent;
 	}
 	void Session::sendMessage(MessageBase::ptr message) {
@@ -107,7 +107,7 @@ namespace crazy {
 			onMessageCallback_(message);
 		}
 	}
-	void Session::onParseFinishMessgae(MessageBase::ptr message) {
+	void Session::onParseFinishMessage(MessageBase::ptr message) {
 		if (message->getCmd() == InternalCommand::heartbeat) {
 			lastHeartbeatTimestamp_ = GetCurrentMS();
 		}

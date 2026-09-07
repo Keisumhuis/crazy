@@ -35,6 +35,7 @@ namespace crazy {
 		void free_result() {
 			if (result_) {
 				mysql_free_result(result_);
+				result_ = nullptr;
 			}
 		}
 
@@ -175,7 +176,7 @@ namespace crazy {
 		// with the provided attribute type and the pointer to the attribute value. 
 		// Returns true if the attribute is set successfully, false otherwise.
 		bool stmt_attr_set(enum enum_stmt_attr_type attr_type, const void* attr) {
-			return mysql_stmt_attr_set(statement_, attr_type, attr);
+			return !mysql_stmt_attr_set(statement_, attr_type, attr);
 		}
 
 		// @brief Get an attribute value of the prepared statement. Calls the'mysql_stmt_attr_get' function 
@@ -201,10 +202,12 @@ namespace crazy {
 		// Checks if the'statement_' pointer is not null and then calls'mysql_stmt_close' to close it. 
 		// Always returns true as long as the pointer was valid initially, false if it was nullptr.
 		bool stmt_close() {
-			if (statement_) {
-				mysql_stmt_close(statement_);
+			if (!statement_) {
+				return true;
 			}
-			return true;
+			auto rc = mysql_stmt_close(statement_);
+			statement_ = nullptr;
+			return rc == 0;
 		}
 
 		// @brief Reset the prepared statement to its initial state so that it can be re-executed. 
@@ -353,12 +356,15 @@ namespace crazy {
 			if (!connection_) {
 				init();
 			}
+			if (!connection_) {
+				return false;
+			}
 			unsigned int ssl_mode = SSL_MODE_DISABLED;
 			options(MYSQL_OPT_SSL_MODE, &ssl_mode);
 			my_bool reconnect = 1;
 			options(MYSQL_OPT_RECONNECT, &reconnect);
 			if (!mysql_real_connect(connection_, host, user, password, db, port, unix_socket, client_flag)) {
-				std::cerr << "connect to mysql server fail, host = " << host << ", port = " << port << ", user = " << user << ", password = " << password
+				std::cerr << "connect to mysql server fail, host = " << host << ", port = " << port << ", user = " << user
 					<< ", errno = " << get_errno() << ", error message = " << get_error_message() << std::endl;
 				return false;
 			}
@@ -432,7 +438,7 @@ namespace crazy {
 		// provided SSL key, certificate, CA certificate, CA path, and cipher. Returns true if 
 		// the SSL configuration is set successfully (i.e., the function returns 0), and false otherwise.
 		bool set_ssl(const std::string& key, const std::string& cert, const std::string& ca, const std::string& capath, const std::string& cipher) {
-			return mysql_ssl_set(connection_, key.data(), cert.data(), ca.data(), capath.data(), cipher.data());
+			return !mysql_ssl_set(connection_, key.data(), cert.data(), ca.data(), capath.data(), cipher.data());
 		}
 
 		// @brief Get the currently used SSL cipher for the MySQL connection. Calls'mysql_get_ssl_cipher' 
@@ -452,13 +458,13 @@ namespace crazy {
 		// @brief Get the error number associated with the last MySQL operation on this connection. 
 		// Calls'mysql_errno' and returns the error number as an unsigned 32-bit integer.
 		uint32_t get_errno() {
-			return mysql_errno(connection_);
+			return connection_ ? mysql_errno(connection_) : 0;
 		}
 
 		// @brief Get the error message associated with the last MySQL operation on this connection. 
 		// Calls'mysql_error' and returns the error message as a std::string.
 		std::string get_error_message() {
-			return mysql_error(connection_);
+			return connection_ ? mysql_error(connection_) : "Connection is null";
 		}
 
 		// @brief Get the SQL state associated with the last SQL operation on this connection. 
@@ -612,21 +618,21 @@ namespace crazy {
 		// and returns true if the commit operation is successful (i.e., the function returns 0), 
 		// and false otherwise.
 		bool commit() {
-			return mysql_commit(connection_);
+			return !mysql_commit(connection_);
 		}
 
 		// @brief Rollback the current transaction on the MySQL server. Calls'mysql_rollback' 
 		// and returns true if the rollback operation is successful (i.e., the function returns 0), 
 		// and false otherwise.
 		bool rollback() {
-			return mysql_rollback(connection_);
+			return !mysql_rollback(connection_);
 		}
 
 		// @brief Set the auto-commit mode for the MySQL connection. Calls'mysql_autocommit' 
 		// with the provided auto-commit mode (default is true). Returns true if the mode is set successfully, 
 		// and false otherwise.
 		bool autocommit(bool auto_mode = true) {
-			return mysql_autocommit(connection_, auto_mode);
+			return !mysql_autocommit(connection_, auto_mode);
 		}
 
 		// @brief Create a new 'MySQLNativeStatement' object for preparing and executing SQL statements. 
@@ -642,7 +648,7 @@ namespace crazy {
 		void init() {
 			connection_ = mysql_init(nullptr);
 			if (!connection_) {
-				std::cerr << "init mysql connection fail, errno = " << mysql_errno(connection_) << ", error message = " << mysql_error(connection_) << std::endl;
+				std::cerr << "init mysql connection fail" << std::endl;
 				return;
 			}
 		}

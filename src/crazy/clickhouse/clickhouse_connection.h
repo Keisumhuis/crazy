@@ -631,19 +631,19 @@ namespace crazy {
 		ClickHouseResult::ptr exec_fmt(const char* fmt, ...) {
 			va_list args;
 			va_start(args, fmt);
-			auto size = vsnprintf(nullptr, 0, fmt, args) + 1;
+			auto size = vsnprintf(nullptr, 0, fmt, args);
 			va_end(args);
 
-			if (size <= 0) {
+			if (size < 0) {
 				throw ClickHouseQueryException("Format string error");
 			}
 
-			std::string sql;
-			sql.resize(size);
+			std::string sql(static_cast<size_t>(size) + 1, '\0');
 
 			va_start(args, fmt);
-			vsnprintf(sql.data(), size, fmt, args);
+			vsnprintf(sql.data(), sql.size(), fmt, args);
 			va_end(args);
+			sql.resize(static_cast<size_t>(size));
 
 			return doExec(sql);
 		}

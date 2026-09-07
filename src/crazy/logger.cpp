@@ -326,7 +326,7 @@ namespace crazy {
 		if (Config::GetBoolean("logger", "file_log", true)) {
 			auto fileAppender = std::make_shared<LoggerFileAppenderImpl>();
 			fileAppender->setPath(Config::GetString("logger", "path", "./logs"));
-			fileAppender->setMaxSize(Config::GetIntager("logger", "max_size", 1024 * 1024 * 8));
+			fileAppender->setMaxSize(Config::GetInteger("logger", "max_size", 1024 * 1024 * 8));
 			logger->addAppender(fileAppender);
 		}
 		

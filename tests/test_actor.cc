@@ -20,13 +20,13 @@ protected:
 	 * @brief 处理命令行消息.
 	 * @param message 消息
 	 */
-	void handleCommandLineMessgaBase(crazy::MessageBase::ptr request, crazy::MessageBase::ptr response) override {
+	void handleCommandLineMessageBase(crazy::MessageBase::ptr request, crazy::MessageBase::ptr response) override {
 	}
 	/**
 	 * @brief 处理普通消息.
 	 * @param message 消息
 	 */
-	void handleMessgaBase(crazy::MessageBase::ptr message) override {
+	void handleMessageBase(crazy::MessageBase::ptr message) override {
 		if (message->getCmd() == 999) {
 			auto response = message->createResponse();
 			response->setData("123123123123123123123");

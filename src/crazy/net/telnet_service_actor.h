@@ -62,7 +62,7 @@ namespace crazy {
 		/**
 		 * @brief 处理消息.
 		 */
-		void handleMessgaBase(MessageBase::ptr message) override;
+		void handleMessageBase(MessageBase::ptr message) override;
 		/**
 		 * @brief 初始化配置.
 		 */

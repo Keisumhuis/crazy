@@ -92,7 +92,7 @@ namespace crazy {
 		CondMutexGuard guard(condMutex_);
 		return functionQueue_.size();
 	}
-	void ActorInterface::handleCommandLineMessgaBase(MessageBase::ptr request, MessageBase::ptr response) {
+	void ActorInterface::handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response) {
 		auto commands = StringUtil::Split(request->getData());
 		if (commands.empty()) {
 			return;
@@ -104,20 +104,20 @@ namespace crazy {
 			response->setData("当前异步任务队列长度：" + std::to_string(asyncTaskQueueSize()));
 		}
 	}
-	void ActorInterface::handleMessgaBase(MessageBase::ptr message) {
+	void ActorInterface::handleMessageBase(MessageBase::ptr message) {
 	}
-	void ActorInterface::onRecvMessgaBase(MessageBase::ptr message) {
+	void ActorInterface::onRecvMessageBase(MessageBase::ptr message) {
 		if (InternalCommand::command_line_request == message->getCmd()) {
 			auto response = std::make_shared<MessageBase>();
 			response->setCmd(InternalCommand::command_line_response);
 			response->setSessionId(message->getSessionId());
 			response->setComment(message->getComment());
 			response->setData("no matching command was found.");
-			handleCommandLineMessgaBase(message, response);
+			handleCommandLineMessageBase(message, response);
 			sendMessage(response);
 		}
 		else {
-			handleMessgaBase(message);
+			handleMessageBase(message);
 		}
 	}
 	void ActorInterface::run() {
@@ -150,7 +150,7 @@ namespace crazy {
 						}
 					}
 					if (message) {
-						onRecvMessgaBase(message);
+						onRecvMessageBase(message);
 					}
 				}
 				{
@@ -163,7 +163,7 @@ namespace crazy {
 						}
 					}
 					if (message) {
-						onRecvMessgaBase(message);
+						onRecvMessageBase(message);
 					}
 				}
 				{

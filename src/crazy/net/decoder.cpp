@@ -6,10 +6,10 @@ namespace crazy {
 	Decoder::Decoder(Buffer& buffer)
 		: buffer_(buffer) {
 	}
-	void Decoder::setMaxMessgaeLength(uint64_t length) {
+	void Decoder::setMaxMessageLength(uint64_t length) {
 		maxMessageLength_ = length;
 	}
-	uint64_t Decoder::getMaxMessgaeLength() const {
+	uint64_t Decoder::getMaxMessageLength() const {
 		return maxMessageLength_;
 	}
 	void Decoder::parse() {

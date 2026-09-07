@@ -92,7 +92,7 @@ namespace crazy {
 		/**
 		 * @brief 获取时间戳.
 		 */
-		uint32_t timestamp() const;
+		time_t timestamp() const;
 		/**
 		 * @brief 获取星期.
 		 */

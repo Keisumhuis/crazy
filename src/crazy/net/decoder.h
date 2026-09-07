@@ -39,11 +39,11 @@ namespace crazy {
 		/**
 		 * @brief 设置最大报文长度.
 		 */
-		void setMaxMessgaeLength(uint64_t length);
+		void setMaxMessageLength(uint64_t length);
 		/**
 		 * @brief 获取最大报文长度.
 		 */
-		uint64_t getMaxMessgaeLength() const;
+		uint64_t getMaxMessageLength() const;
 		/**
 		 * @brief 解析方法.
 		 */

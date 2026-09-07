@@ -48,7 +48,7 @@ namespace crazy {
         }
         return GetConfigValueMap()[section][key] == "true" ? true : false;
     }
-    int64_t Config::GetIntager(const std::string& section, const std::string& key, const int64_t& defaultValue) {
+    int64_t Config::GetInteger(const std::string& section, const std::string& key, const int64_t& defaultValue) {
         if (!GetConfigValueMap().count(section) || !GetConfigValueMap()[section].count(key)) {
             return defaultValue;
         }
@@ -66,7 +66,7 @@ namespace crazy {
         }
         return GetConfigValueMap()[section][key];
     }
-    void Config::EreaseValue(const std::string& section, const std::string& key) {
+    void Config::EraseValue(const std::string& section, const std::string& key) {
         if (GetConfigValueMap().count(section)) {
             GetConfigValueMap()[section].erase(key);
             if (GetConfigValueMap()[section].empty()) {
@@ -74,7 +74,7 @@ namespace crazy {
             }
         }
     }
-    bool Config::HasSession(const std::string& section) {
+    bool Config::HasSection(const std::string& section) {
         return GetConfigValueMap().count(section);
     }
     void Config::ParseConfigFile(const std::string& filePath) {

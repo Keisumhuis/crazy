@@ -4,6 +4,10 @@ include(utility.cmake)
 
 project(crazy LANGUAGES C CXX)
 
+option(CRAZY_BUILD_TESTS "Build crazy test executables" ON)
+option(CRAZY_BUILD_E2E_TESTS "Build network e2e tests" ON)
+option(CRAZY_BUILD_DB_TESTS "Build database tests" ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,6 +33,7 @@ file(GLOB_RECURSE SOURCES
     "src/crazy/*.cpp"
     "src/crazy/encryption/*.cpp"
     "src/crazy/net/*.cpp"
+    "src/crazy/net/smtp/*.cpp"
     "src/crazy/net/http/*.c"
     "src/crazy/net/http/*.cpp"
 )
@@ -36,6 +41,9 @@ file(GLOB_RECURSE SOURCES
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/src/third_party")
 set(MYSQL_ROOT_DIR "${THIRD_PARTY_DIR}/MySQL")
 set(CLICKHOUSE_ROOT_DIR "${THIRD_PARTY_DIR}/clickhouse")
+set(GENERATED_INCLUDE_DIR "${CMAKE_BINARY_DIR}/generated")
+
+file(MAKE_DIRECTORY "${GENERATED_INCLUDE_DIR}/crazy")
 
 set(GIT_COMMIT "")
 set(GIT_BRANCH "")
@@ -46,7 +54,7 @@ message(STATUS "GIT_BRANCH: ${GIT_BRANCH}")
 
 configure_file(
     ${CMAKE_SOURCE_DIR}/src/crazy/version.h.in
-    ${CMAKE_SOURCE_DIR}/src/crazy/version.h
+    ${GENERATED_INCLUDE_DIR}/crazy/version.h
     @ONLY
 )
 
@@ -138,6 +146,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
+        $<BUILD_INTERFACE:${GENERATED_INCLUDE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/crazy>
         $<BUILD_INTERFACE:${CLICKHOUSE_ROOT_DIR}/include>
@@ -162,6 +171,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/tests/app.ini DESTINATION ${CMAKE_BINARY_DIR}/conf
 function(add_crazy_test test_name)
     add_executable(${test_name} tests/${test_name}.cc)
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
+    add_test(NAME ${test_name} COMMAND ${test_name})
 
     if(MYSQL_LINK_LIBS)
         target_link_libraries(${test_name} PRIVATE ${MYSQL_LINK_LIBS})
@@ -176,25 +186,37 @@ function(add_crazy_test test_name)
     endif()
 endfunction()
 
-add_crazy_test(test_actor)
-add_crazy_test(test_actor_client)
-add_crazy_test(test_config)
-add_crazy_test(test_logger)
-add_crazy_test(test_protocol)
-add_crazy_test(test_http)
-add_crazy_test(test_http_application)
-add_crazy_test(test_websocket)
-add_crazy_test(test_websocket_server)
-add_crazy_test(test_http_client)
-add_crazy_test(test_websocket_client)
-add_crazy_test(test_http_client_e2e)
-add_crazy_test(test_websocket_client_e2e)
-add_crazy_test(test_mvvc_lock_wapper)
-add_crazy_test(test_localsocket)
-add_crazy_test(test_json)
-add_crazy_test(test_lock)
-add_crazy_test(test_encryption)
-add_crazy_test(test_date_time)
-add_crazy_test(test_key_value_pair)
-add_crazy_test(test_mmap)
-add_crazy_test(test_clickhouse)
+if(CRAZY_BUILD_TESTS)
+    enable_testing()
+
+    add_crazy_test(test_actor)
+    add_crazy_test(test_actor_client)
+    add_crazy_test(test_config)
+    add_crazy_test(test_logger)
+    add_crazy_test(test_protocol)
+    add_crazy_test(test_http)
+    add_crazy_test(test_http_application)
+    add_crazy_test(test_websocket)
+    add_crazy_test(test_websocket_server)
+    add_crazy_test(test_http_client)
+    add_crazy_test(test_websocket_client)
+    add_crazy_test(test_smtp_client)
+    add_crazy_test(test_mvcc_lock_wrapper)
+    add_crazy_test(test_localsocket)
+    add_crazy_test(test_json)
+    add_crazy_test(test_lock)
+    add_crazy_test(test_encryption)
+    add_crazy_test(test_date_time)
+    add_crazy_test(test_key_value_pair)
+    add_crazy_test(test_mmap)
+
+    if(CRAZY_BUILD_E2E_TESTS)
+        add_crazy_test(test_http_client_e2e)
+        add_crazy_test(test_websocket_client_e2e)
+    endif()
+
+    if(CRAZY_BUILD_DB_TESTS)
+        add_crazy_test(test_mysql)
+        add_crazy_test(test_clickhouse)
+    endif()
+endif()

@@ -54,7 +54,7 @@ namespace crazy {
 		/**
 		 * @brief 注册取消事件回调.
 		 */
-		void registerSelectEventUnRegisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent);
+		void registerSelectEventUnregisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent);
 		/**
 		 * @brief 可读事件.
 		 */
@@ -92,7 +92,7 @@ namespace crazy {
 		/**
 		 * @brief 解析到完整报文.
 		 */
-		void onParseFinishMessgae(MessageBase::ptr message);
+		void onParseFinishMessage(MessageBase::ptr message);
 		/**
 		 * @brief 解析异常.
 		 */
@@ -106,7 +106,7 @@ namespace crazy {
 		//! 断开链接
 		std::function<void()> onDisconnected_;
 		//! 接受到消息
-		std::function<void(MessageBase::ptr)> onRecvMessgae_;
+		std::function<void(MessageBase::ptr)> onRecvMessage_;
 		//! 注册事件
 		std::function<void(int32_t, SelectorEventType, std::function<void()>)> registerSelectEvent_;
 		//! 取消所有事件

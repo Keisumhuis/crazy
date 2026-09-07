@@ -6,7 +6,7 @@ namespace crazy {
 	Connection::Connection() 
 		: decoder_(recvBuffer_)
 		, encoder_(sendBuffer_) {
-		decoder_.registerParseFinishCallback(std::bind(&Connection::onParseFinishMessgae, this, std::placeholders::_1));
+		decoder_.registerParseFinishCallback(std::bind(&Connection::onParseFinishMessage, this, std::placeholders::_1));
 		decoder_.registerParseExceptionCallback(std::bind(&Connection::onParseException, this));
 	}
 	void Connection::connect(const std::string& ip, uint16_t port) {
@@ -25,12 +25,12 @@ namespace crazy {
 		onDisconnected_ = callback;
 	}
 	void Connection::registerRecvMessageCallback(std::function<void(MessageBase::ptr)> callback) {
-		onRecvMessgae_ = callback;
+		onRecvMessage_ = callback;
 	}
 	void Connection::registerSelectEventRegisterCallback(std::function<void(int32_t, SelectorEventType, std::function<void()>)> registerSelectEvent) {
 		registerSelectEvent_ = registerSelectEvent;
 	}
-	void Connection::registerSelectEventUnRegisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent) {
+	void Connection::registerSelectEventUnregisterCallback(std::function<void(int32_t, SelectorEventType)> unregisterSelectEvent) {
 		unregisterSelectEvent_ = unregisterSelectEvent;
 	}
 	void Connection::onReadEvent() {
@@ -100,11 +100,11 @@ namespace crazy {
 		}
 	}
 	void Connection::sendRecvMessage(MessageBase::ptr message) {
-		if (onRecvMessgae_) {
-			onRecvMessgae_(message);
+		if (onRecvMessage_) {
+			onRecvMessage_(message);
 		}
 	}
-	void Connection::onParseFinishMessgae(MessageBase::ptr message) {
+	void Connection::onParseFinishMessage(MessageBase::ptr message) {
 		sendRecvMessage(message);
 	}
 	void Connection::onParseException() {
