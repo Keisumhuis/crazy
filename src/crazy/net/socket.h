@@ -23,6 +23,10 @@ namespace crazy {
 		 */
 		Socket();
 		/**
+		 * @brief 构造函数.
+		 */
+		explicit Socket(socket_t acceptedSocket);
+		/**
 		 * @brief 析构函数.
 		 */
 		virtual ~Socket() = default;

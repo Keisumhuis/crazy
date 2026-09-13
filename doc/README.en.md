@@ -12,6 +12,8 @@
 | Actor | Dedicated thread, message queue, async task queue, CLI message handling, normal message handling | `actor_interface.h`, `message_base.h` |
 | Daemon | `-d` daemon argument parsing, supervisor/worker roles, worker restart loop | `daemon.h` |
 | Networking | IPv4 Socket, local Socket, Acceptor/Connection, Session, Encoder/Decoder, Selector, timers, ServiceActor/ClientActor | `net/*.h` |
+| HTTP | HTTP/1.1 server routing, deferred responses, static file directories, synchronous HTTP client, multipart/form-data upload, WebSocket server/client | `http_application.h`, `net/http/*.h` |
+| SMTP | Plain SMTP client, AUTH PLAIN/LOGIN authentication, plain-text email sending | `net/smtp/*.h` |
 | Logging | trace/debug/info/warn/error/fatal, multiple loggers, console/file appenders, custom format | `logger.h` |
 | Configuration | INI file/directory loading, string/integer/double/bool reads, defaults, section checks | `config.h` |
 | Encryption | Base64 encode/decode, MD5 hashing | `encryption/base64.h`, `encryption/md5.h` |
@@ -20,7 +22,7 @@
 | Databases | MySQL/ClickHouse connections, queries, formatted SQL, transactions, pools, health checks | `mysql/*.h`, `clickhouse/*.h` |
 | Memory and files | Buffer, cross-platform mmap, persistent `MmapVector`, file lock | `buffer.h`, `mmap/*.h`, `file_lock.h` |
 | Concurrency | Thread pool, atomic lock, condition mutex, MVCC double-version wrapper | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wrapper.h` |
-| Utilities | DateTime, TimeZone, URI, UUID, endian conversion, string/path/thread-name utilities, singleton, noncopyable base, command-line parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `endian.h`, `utils.h`, `singleton.h`, `command_line.h` |
+| Utilities | DateTime, TimeZone, URI, UUID, endian conversion, string/path/thread-name utilities, singleton, noncopyable base, command-line parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `byte_order.h`, `utils.h`, `singleton.h`, `command_line.h` |
 | Third party | RapidJSON, GSL, MySQL client, ClickHouse client headers/prebuilt libs | `src/crazy/rapidjson`, `src/crazy/gsl`, `src/third_party` |
 
 ## Build
@@ -45,7 +47,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-CMake builds the static library target `crazy` and the example programs under `tests/`. The Windows script builds x86/x64 Debug/Release. The Linux script builds x86/x64 Debug/Release.
+CMake builds the static library target `crazy` and the test programs under `tests/`. The Windows script builds x86/x64 Debug/Release. The Linux script builds x86/x64 Debug/Release.
 
 ## Project Integration
 
@@ -281,6 +283,182 @@ decoder.registerParseFinishCallback([](crazy::MessageBase::ptr message) {
 });
 decoder.parse();
 ```
+
+## HTTP and WebSocket
+
+`HttpApplication` extends `Application` with an HTTP/1.1 server and WebSocket server.
+
+### HTTP Server
+
+```cpp
+#include "crazy/http_application.h"
+
+int main(int argc, char** argv) {
+    crazy::HttpApplication app(argc, argv);
+    app.listen(8080, "0.0.0.0");
+
+    app.registerHttpHandler<crazy::GET>("/", [](crazy::HttpRequest&, crazy::HttpResponse& response) {
+        response.setBody("hello crazy");
+    });
+
+    app.registerHttpHandler<crazy::GET, crazy::POST>(
+        "/user", [](crazy::HttpRequest&, crazy::HttpResponse& response) {
+            response.setBody("user");
+        });
+
+    // Directory listing is disabled by default.
+    app.registerStaticDirectory("/static", "./static");
+
+    // Enable an Nginx-style HTML directory listing explicitly.
+    app.registerStaticDirectory("/browse", "./static", true);
+
+    app.exec();
+}
+```
+
+The handler signature is fixed as `void(HttpRequest&, HttpResponse&)`. Use `request` to read the method, URI, headers, and body, and use `response` to set the status, headers, and body.
+
+By default, the response is sent when the handler returns. To wait for an asynchronous task, call `response.defer()`, keep the returned response pointer, set the response content when the task completes, and call `send()`:
+
+```cpp
+app.registerHttpHandler<crazy::GET>("/defer",
+    [&app](crazy::HttpRequest&, crazy::HttpResponse& response) {
+        auto deferredResponse = response.defer();
+        app.enqueueRunnable([deferredResponse]() {
+            deferredResponse->setBody("deferred response");
+            deferredResponse->send();
+        });
+    });
+```
+
+`send()` can be called by a background task. The actual socket write is posted back to the HTTP session's event thread, and repeated calls for the same response are ignored.
+
+Static directories handle `GET` requests only. Exact business routes take priority over static files. For example, `/static/nested/data.json` maps to `./static/nested/data.json`. Directory listing is disabled by default, so directory requests return `404`. Pass `true` as the third argument to generate an HTML file listing; a directory URL without a trailing slash is redirected to the slash-terminated URL. Missing files return `404`. URL paths containing a `.` or `..` segment return `403`; paths that resolve through a symbolic link outside the registered root directory are also rejected.
+
+```cpp
+// GET /browse/ returns an HTML directory listing.
+app.registerStaticDirectory("/browse", "./static", true);
+```
+
+### HTTP Client
+
+`HttpClient` is a synchronous blocking client with common methods, custom headers, and multipart/form-data upload support.
+
+```cpp
+#include "crazy/net/http/http_client.h"
+
+crazy::HttpClient client;
+
+// Set default request headers
+client.setHeader("Authorization", "Bearer token");
+
+// GET request
+client.get("http://127.0.0.1:8080/hello", [](crazy::HttpResponse::ptr response) {
+    CRAZY_SYSTEM_INFO() << response->body();
+});
+
+// POST request (with body)
+client.post("http://127.0.0.1:8080/submit", "body content",
+    [](crazy::HttpResponse::ptr response) {
+        CRAZY_SYSTEM_INFO() << response->body();
+    });
+
+// Generic request (DELETE / HEAD / OPTIONS / PATCH, etc.)
+client.request(crazy::HttpMethod::DELETE, "http://127.0.0.1:8080/user/1",
+    "", [](crazy::HttpResponse::ptr response) {});
+
+// multipart/form-data upload
+std::vector<crazy::FormDataField> fields = {{"name", "alice"}};
+std::vector<crazy::FormDataFile> files = {
+    {"file", "a.txt", "text/plain", "file content"},
+};
+client.postForm("http://127.0.0.1:8080/upload", fields, files,
+    [](crazy::HttpResponse::ptr response) {});
+```
+
+### WebSocket Server
+
+```cpp
+crazy::HttpApplication app(argc, argv);
+app.listen(8080, "0.0.0.0");
+
+app.registerWebSocketConnectCallback([](crazy::HttpSession::ptr session) {
+    session->sendText("welcome");
+});
+
+app.registerWebSocketMessageCallback(
+    [](crazy::HttpSession::ptr session, const std::string& data,
+       crazy::HttpSession::WebSocketOpCode opcode) {
+        if (opcode == crazy::HttpSession::WebSocketOpCode::text) {
+            session->sendText(data);
+        }
+        else if (opcode == crazy::HttpSession::WebSocketOpCode::binary) {
+            session->sendBinary(data);
+        }
+    });
+
+app.registerWebSocketCloseCallback([]() {
+    CRAZY_SYSTEM_INFO() << "closed";
+});
+
+app.exec();
+```
+
+### WebSocket Client
+
+```cpp
+#include "crazy/net/http/websocket_client.h"
+
+crazy::WebSocketClient ws;
+
+ws.registerConnectCallback([]() {
+    CRAZY_SYSTEM_INFO() << "connected";
+});
+ws.registerMessageCallback([](const std::string& data, crazy::WebSocketClient::OpCode opcode) {
+    CRAZY_SYSTEM_INFO() << "received: " << data;
+});
+ws.registerCloseCallback([]() {
+    CRAZY_SYSTEM_INFO() << "closed";
+});
+
+if (ws.connect("ws://127.0.0.1:8080/chat")) {
+    ws.sendText("hello");
+    ws.run();  // Blocking receive loop until the connection closes
+}
+```
+
+## SMTP
+
+`SmtpClient` provides a plain SMTP session, AUTH PLAIN / AUTH LOGIN authentication, and plain-text email sending.
+
+```cpp
+#include "crazy/net/smtp/smtp_client.h"
+
+crazy::SmtpClient client;
+client.setClientName("localhost");
+
+// Connect to the server (default port 25) and complete greeting/hello
+if (!client.connect("smtp.example.com")) {
+    CRAZY_SYSTEM_ERROR() << "connect failed";
+    return;
+}
+
+// Authenticate (default AUTH LOGIN, or AUTH PLAIN)
+client.login("user@example.com", "<password>", crazy::SmtpClient::AuthType::login);
+
+// Send a plain-text email
+client.sendMail("from@example.com",
+                {"to@example.com"},
+                "subject",
+                "body",
+                {"cc@example.com"},
+                {"bcc@example.com"});
+
+client.close();
+```
+
+You can also send emails with extra headers via the `SmtpClient::MailMessage` struct;
+`sendMail(const MailMessage&)` and `buildMailData()` support custom email content.
 
 ## Logging
 
@@ -701,6 +879,11 @@ CMake currently builds these test/example targets:
 - `test_config`
 - `test_date_time`
 - `test_encryption`
+- `test_http`
+- `test_http_session`
+- `test_http_application`
+- `test_http_client`
+- `test_http_client_e2e`
 - `test_json`
 - `test_key_value_pair`
 - `test_localsocket`
@@ -708,7 +891,14 @@ CMake currently builds these test/example targets:
 - `test_logger`
 - `test_mmap`
 - `test_mvcc_lock_wrapper`
+- `test_mysql`
 - `test_protocol`
+- `test_smtp_client`
+- `test_socket`
+- `test_websocket`
+- `test_websocket_client`
+- `test_websocket_client_e2e`
+- `test_websocket_server`
 
 Run examples:
 

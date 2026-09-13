@@ -8,13 +8,32 @@ namespace crazy {
 	Socket::Socket() {
 		initSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	}
+	Socket::Socket(socket_t acceptedSocket) {
+		socket_ = acceptedSocket;
+		active_.store(acceptedSocket != INVALID_SOCKET);
+		if (!active()) {
+			return;
+		}
+
+		int32_t value = 1;
+#if WIN32
+		setOption(SOL_SOCKET, SO_REUSEADDR, value);
+#else
+		setOption(SOL_SOCKET, SO_REUSEPORT, value);
+#endif
+		setOption(IPPROTO_TCP, TCP_NODELAY, value);
+
+		int32_t bufferSize = 32768;
+		setOption(SOL_SOCKET, SO_SNDBUF, bufferSize);
+		setOption(SOL_SOCKET, SO_RCVBUF, bufferSize);
+	}
 	Socket::ptr Socket::accept() {
-		auto clientSocket = std::make_shared<Socket>();
-		clientSocket->socket_ = ::accept(socket_, nullptr, nullptr);
-		if (clientSocket->socket_ <= 0) {
+		const socket_t acceptedSocket = ::accept(socket_, nullptr, nullptr);
+		if (acceptedSocket == INVALID_SOCKET) {
 			CRAZY_SYSTEM_ERROR() << "bind error errno = " << WSAGetLastError() << " errstr = " << strerror(errno);
 			return nullptr;
 		}
+		auto clientSocket = Socket::ptr(new Socket(acceptedSocket));
 		clientSocket->updateLocalAddress();
 		clientSocket->updateRemoteAddress();
 		return clientSocket;

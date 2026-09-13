@@ -79,6 +79,9 @@ namespace crazy {
 		std::function<void(socket_t, SelectorEventType)> callback) {
 		unregisterEvent_ = std::move(callback);
 	}
+	void HttpSession::registerPostCallback(std::function<void(std::function<void()>)> callback) {
+		postCallback_ = std::move(callback);
+	}
 	void HttpSession::registerCloseCallback(std::function<void()> callback) {
 		closeCallback_ = std::move(callback);
 	}
@@ -95,6 +98,24 @@ namespace crazy {
 		}
 		auto response = std::make_shared<HttpResponse>();
 		response->setVersion(request->version());
+		const auto weakSession = weak_from_this();
+		const std::weak_ptr<HttpResponse> weakResponse = response;
+		response->setSendCallback([weakSession, weakResponse](HttpResponse&) {
+			auto session = weakSession.lock();
+			auto response = weakResponse.lock();
+			if (!session || !response) {
+				return;
+			}
+			auto send = [session, response]() {
+				session->sendResponse(response);
+			};
+			if (session->postCallback_) {
+				session->postCallback_(std::move(send));
+			}
+			else {
+				send();
+			}
+		});
 
 		bool routed = false;
 		try {
@@ -117,15 +138,20 @@ namespace crazy {
 			response->setStatus(HttpStatus::NOT_FOUND);
 			response->setBody("Not Found");
 		}
+		if (!response->isDeferred() && !response->isSent()) {
+			response->send();
+		}
+	}
+	void HttpSession::sendResponse(HttpResponse::ptr response) {
+		if (closed_ || !response) {
+			return;
+		}
 		if (!response->headers().contains("Content-Type")) {
 			response->headers().insert("Content-Type", "text/plain; charset=utf-8");
 		}
 		if (!response->headers().contains("Connection")) {
 			response->headers().insert("Connection", "close");
 		}
-		sendResponse(response);
-	}
-	void HttpSession::sendResponse(HttpResponse::ptr response) {
 		sendBuffer_ += response->toString();
 		closeAfterWrite_ = true;
 		flushWrite();

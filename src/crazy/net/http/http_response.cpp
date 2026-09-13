@@ -64,6 +64,30 @@ namespace crazy {
 	void HttpResponse::setReasonPhrase(const std::string& reasonPhrase) {
 		reasonPhrase_ = reasonPhrase;
 	}
+	HttpResponse::ptr HttpResponse::defer() {
+		if (!sent_.load()) {
+			deferred_.store(true);
+		}
+		return shared_from_this();
+	}
+	void HttpResponse::send() {
+		bool expected = false;
+		if (!sent_.compare_exchange_strong(expected, true)) {
+			return;
+		}
+		if (sendCallback_) {
+			sendCallback_(*this);
+		}
+	}
+	bool HttpResponse::isDeferred() const {
+		return deferred_.load();
+	}
+	bool HttpResponse::isSent() const {
+		return sent_.load();
+	}
+	void HttpResponse::setSendCallback(SendCallback callback) {
+		sendCallback_ = std::move(callback);
+	}
 	std::string HttpResponse::toString() const {
 		std::string result = version().toString();
 		result += ' ';

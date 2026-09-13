@@ -85,6 +85,12 @@ namespace crazy {
 			((result = router_->add(Methods, path, handler, object) && result), ...);
 			return result;
 		}
+		/**
+		 * @brief 注册静态文件目录.
+		 */
+		bool registerStaticDirectory(const std::string& path, const std::string& directory, bool enableDirectoryListing = false) {
+			return router_->addStaticDirectory(path, directory, enableDirectoryListing);
+		}
 
 	private:
 		//! HTTP 路由

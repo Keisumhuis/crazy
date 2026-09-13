@@ -72,6 +72,12 @@ namespace crazy {
 		bool registerHttpHandler(const std::string& path, Member Class::* handler, const std::shared_ptr<Class>& object) {
 			return ensureServer()->template registerHttpHandler<Methods...>(path, handler, object);
 		}
+		/**
+		 * @brief 注册静态文件目录.
+		 */
+		bool registerStaticDirectory(const std::string& path, const std::string& directory, bool enableDirectoryListing = false) {
+			return ensureServer()->registerStaticDirectory(path, directory, enableDirectoryListing);
+		}
 
 	protected:
 		/**

@@ -61,6 +61,9 @@ namespace crazy {
 		session->registerUnregisterEventCallback([actor](socket_t fd, SelectorEventType type) {
 			actor->unregisterEventOnThread(fd, type);
 			});
+		session->registerPostCallback([actor](std::function<void()> callback) {
+			actor->enqueueFunction(std::move(callback));
+			});
 		auto weakSession = std::weak_ptr<HttpSession>(session);
 		session->registerCloseCallback([actor, weakSession]() {
 			if (auto closeSession = weakSession.lock()) {
@@ -73,12 +76,12 @@ namespace crazy {
 		}
 		if (wsConnectCallback_) {
 			session->registerWebSocketConnectCallback(wsConnectCallback_);
-			if (wsCloseCallback_) {
-				session->registerWebSocketCloseCallback(wsCloseCallback_);
-			}
-			actor->registerEventOnThread(session->socket(), SelectorEventType::read, [session]() {
-				session->onReadEvent();
-				});
 		}
+		if (wsCloseCallback_) {
+			session->registerWebSocketCloseCallback(wsCloseCallback_);
+		}
+		actor->registerEventOnThread(session->socket(), SelectorEventType::read, [session]() {
+			session->onReadEvent();
+			});
 	}
 }  // namespace crazy

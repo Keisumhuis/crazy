@@ -12,7 +12,8 @@
 | Actor | 独立线程、消息队列、异步任务队列、命令行消息处理、普通消息处理 | `actor_interface.h`, `message_base.h` |
 | Daemon | `-d` 守护模式参数解析、supervisor/worker 角色、worker 拉起 | `daemon.h` |
 | 网络通信 | IPv4 Socket、本地 Socket、Acceptor/Connection、Session、Encoder/Decoder、Selector、定时器、ServiceActor/ClientActor | `net/*.h` |
-| HTTP | HTTP/1.1 服务端路由、HTTP 同步客户端、multipart/form-data 上传、WebSocket 服务端/客户端 | `http_application.h`, `net/http/*.h` |
+| HTTP | HTTP/1.1 服务端路由、延迟响应、静态文件目录、HTTP 同步客户端、multipart/form-data 上传、WebSocket 服务端/客户端 | `http_application.h`, `net/http/*.h` |
+| SMTP | 明文 SMTP 客户端、AUTH PLAIN/LOGIN 认证、纯文本邮件发送 | `net/smtp/*.h` |
 | 日志 | trace/debug/info/warn/error/fatal，多 Logger，控制台/文件 Appender，自定义格式 | `logger.h` |
 | 配置 | INI 文件/目录加载，字符串、整数、浮点、布尔读取，默认值，section 检查 | `config.h` |
 | 加密 | Base64 编码/解码、MD5 哈希 | `encryption/base64.h`, `encryption/md5.h` |
@@ -21,7 +22,7 @@
 | 数据库 | MySQL/ClickHouse 连接、查询、格式化 SQL、事务、连接池、健康检查 | `mysql/*.h`, `clickhouse/*.h` |
 | 内存与文件 | Buffer、跨平台 mmap、持久化 `MmapVector`、文件锁 | `buffer.h`, `mmap/*.h`, `file_lock.h` |
 | 并发工具 | 线程池、原子锁、条件互斥锁、MVCC 双版本读写包装 | `thread_pool.h`, `atomic_lock.h`, `cond_mutex.h`, `mvcc_lock_wrapper.h` |
-| 基础工具 | DateTime、TimeZone、URI、UUID、端序转换、字符串/路径/线程名工具、单例、不可拷贝基类、命令行 parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `endian.h`, `utils.h`, `singleton.h`, `command_line.h` |
+| 基础工具 | DateTime、TimeZone、URI、UUID、端序转换、字符串/路径/线程名工具、单例、不可拷贝基类、命令行 parser | `date_time.h`, `time_zone.h`, `uri.h`, `uuid.h`, `byte_order.h`, `utils.h`, `singleton.h`, `command_line.h` |
 | 第三方组件 | RapidJSON、GSL、MySQL client、ClickHouse client 头文件/预编译库 | `src/crazy/rapidjson`, `src/crazy/gsl`, `src/third_party` |
 
 ## 编译构建
@@ -46,7 +47,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-CMake 会生成静态库 `crazy`，并编译 `tests/` 下的示例程序。Windows 脚本按 x86/x64、Debug/Release 构建；Linux 脚本按 x86/x64、Debug/Release 构建。
+CMake 会生成静态库 `crazy`、编译 `tests/` 下的测试程序。Windows 脚本按 x86/x64、Debug/Release 构建；Linux 脚本按 x86/x64、Debug/Release 构建。
 
 ## 接入项目
 
@@ -312,11 +313,43 @@ int main(int argc, char** argv) {
     // 注册成员函数路由并绑定对象
     // app.registerHttpHandler<crazy::GET>("/path", &Controller::method, &controller);
 
+    // 注册静态文件目录，默认不显示目录列表
+    app.registerStaticDirectory("/static", "./static");
+
+    // 显式开启类似 Nginx autoindex 的 HTML 目录列表
+    app.registerStaticDirectory("/browse", "./static", true);
+
     app.exec();
 }
 ```
 
 处理器签名固定为 `void(HttpRequest&, HttpResponse&)`，通过 `request` 读取方法、URI、请求头和请求体，通过 `response` 设置状态码、响应头和响应体。
+
+默认情况下，处理器退出后会立即发送响应。如果业务需要在异步任务完成后再回复，可以调用 `response.defer()` 获取响应对象，完成业务后设置响应内容并调用 `send()`：
+
+```cpp
+app.registerHttpHandler<crazy::GET>("/defer",
+    [&app](crazy::HttpRequest&, crazy::HttpResponse& response) {
+        auto deferredResponse = response.defer();
+        app.enqueueRunnable([deferredResponse]() {
+            deferredResponse->setBody("deferred response");
+            deferredResponse->send();
+        });
+    });
+```
+
+`send()` 可以从后台任务中调用，框架会把实际 socket 写操作投递回 HTTP 会话所属线程。同一个响应重复调用 `send()` 只会发送一次。
+
+静态目录只处理 `GET` 请求，业务路由优先于静态文件路由。请求路径会按 URL 的目录层级映射到注册目录下的文件，并根据文件扩展名设置常见 `Content-Type`。目录列表默认关闭，目录请求返回 `404`；注册时将第三个参数设为 `true` 后，目录请求会生成 HTML 文件列表，非尾斜杠目录会重定向到带 `/` 的路径。文件不存在返回 `404`。为了防止路径穿越，URL 路径中包含 `.` 或 `..` 段的请求会返回 `403`，符号链接解析后越过注册根目录的路径也会被拒绝。
+
+```cpp
+// /static/index.html       -> ./static/index.html
+// /static/nested/data.json -> ./static/nested/data.json
+app.registerStaticDirectory("/static", "./static");
+
+// GET /browse/ 会返回 HTML 目录列表
+app.registerStaticDirectory("/browse", "./static", true);
+```
 
 #### HTTP 客户端
 
@@ -404,6 +437,39 @@ if (ws.connect("ws://127.0.0.1:8080/chat")) {
     ws.run();  // 阻塞接收循环，直到连接关闭
 }
 ```
+
+### SMTP 客户端
+
+`SmtpClient` 提供明文 SMTP 会话、AUTH PLAIN / AUTH LOGIN 认证和纯文本邮件发送。
+
+```cpp
+#include "crazy/net/smtp/smtp_client.h"
+
+crazy::SmtpClient client;
+client.setClientName("localhost");
+
+// 连接服务器（默认端口 25）并完成 greeting/hello
+if (!client.connect("smtp.example.com")) {
+    CRAZY_SYSTEM_ERROR() << "connect failed";
+    return;
+}
+
+// 认证（默认 AUTH LOGIN，可选 AUTH PLAIN）
+client.login("user@example.com", "<password>", crazy::SmtpClient::AuthType::login);
+
+// 发送纯文本邮件
+client.sendMail("from@example.com",
+                {"to@example.com"},
+                "subject",
+                "body",
+                {"cc@example.com"},
+                {"bcc@example.com"});
+
+client.close();
+```
+
+也可以通过 `SmtpClient::MailMessage` 结构体发送带附加头部的邮件，
+`sendMail(const MailMessage&)` 与 `buildMailData()` 支持自定义邮件内容。
 
 ## 日志系统
 
@@ -825,6 +891,7 @@ CMake 当前会生成以下测试/示例目标：
 - `test_date_time`
 - `test_encryption`
 - `test_http`
+- `test_http_session`
 - `test_http_application`
 - `test_http_client`
 - `test_http_client_e2e`
@@ -835,7 +902,10 @@ CMake 当前会生成以下测试/示例目标：
 - `test_logger`
 - `test_mmap`
 - `test_mvcc_lock_wrapper`
+- `test_mysql`
 - `test_protocol`
+- `test_smtp_client`
+- `test_socket`
 - `test_websocket`
 - `test_websocket_client`
 - `test_websocket_client_e2e`

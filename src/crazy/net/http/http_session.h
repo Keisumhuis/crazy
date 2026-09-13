@@ -73,6 +73,10 @@ namespace crazy {
 		 */
 		void registerUnregisterEventCallback(std::function<void(socket_t, SelectorEventType)> callback);
 		/**
+		 * @brief 注册会话线程任务回调.
+		 */
+		void registerPostCallback(std::function<void(std::function<void()>)> callback);
+		/**
 		 * @brief 注册会话关闭回调.
 		 */
 		void registerCloseCallback(std::function<void()> callback);
@@ -178,6 +182,8 @@ namespace crazy {
 		bool writeRegistered_ = false;
 		//! 写完后关闭连接
 		bool closeAfterWrite_ = false;
+		//! 会话线程任务回调
+		std::function<void(std::function<void()>)> postCallback_;
 		//! 会话是否已关闭
 		bool closed_ = false;
 		//! WebSocket 帧解析器

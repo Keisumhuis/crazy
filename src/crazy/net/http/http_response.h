@@ -7,7 +7,9 @@
  */
 #pragma once
 
+#include <atomic>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -18,10 +20,14 @@ namespace crazy {
 	/**
 	 * @brief HTTP 响应消息.
 	 */
-	class HttpResponse final : public HttpMessageBase {
+	class HttpResponse final
+		: public HttpMessageBase
+		, public std::enable_shared_from_this<HttpResponse> {
 	public:
 		//! 智能指针声明
 		using ptr = std::shared_ptr<HttpResponse>;
+		//! 响应发送回调类型
+		using SendCallback = std::function<void(HttpResponse&)>;
 		/**
 		 * @brief 根据客户端 key 计算 Sec-WebSocket-Accept.
 		 */
@@ -58,12 +64,38 @@ namespace crazy {
 		 * @brief 将 HTTP 响应序列化为字符串.
 		 */
 		std::string toString() const override;
+		/**
+		 * @brief 延迟发送 HTTP 响应.
+		 */
+		ptr defer();
+		/**
+		 * @brief 发送 HTTP 响应.
+		 */
+		void send();
+		/**
+		 * @brief 判断是否延迟发送 HTTP 响应.
+		 */
+		bool isDeferred() const;
+		/**
+		 * @brief 判断是否已经发送 HTTP 响应.
+		 */
+		bool isSent() const;
+		/**
+		 * @brief 注册 HTTP 响应发送回调.
+		 */
+		void setSendCallback(SendCallback callback);
 
 	private:
 		//! 响应状态码
 		HttpStatus status_ = HttpStatus::OK;
 		//! 响应原因短语
 		std::string reasonPhrase_;
+		//! 是否延迟发送
+		std::atomic<bool> deferred_ = false;
+		//! 是否已经发送
+		std::atomic<bool> sent_ = false;
+		//! 响应发送回调
+		SendCallback sendCallback_;
 	};
 
 	/**
