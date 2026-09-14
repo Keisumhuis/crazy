@@ -215,6 +215,7 @@ if(CRAZY_BUILD_TESTS)
 
     if(CRAZY_BUILD_E2E_TESTS)
         add_crazy_test(test_http_client_e2e)
+        add_crazy_test(test_http_keep_alive_e2e)
         add_crazy_test(test_websocket_client_e2e)
     endif()
 

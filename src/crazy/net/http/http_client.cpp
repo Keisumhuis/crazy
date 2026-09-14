@@ -1,5 +1,6 @@
 #include "crazy/net/http/http_client.h"
 
+#include <cerrno>
 #include <random>
 
 #include "crazy/net/http/http_version.h"
@@ -80,31 +81,29 @@ namespace crazy {
 			req->headers().insert(kv.first, kv.second);
 		}
 		req->headers().insert("Host", host);
+		if (!req->headers().contains("Connection")) {
+			req->headers().insert("Connection", "keep-alive");
+		}
 		req->setBody(body);
 
-		Socket socket;
-		if (!socket.connect(host, port)) {
+		if (!ensureConnection(host, port)) {
 			return nullptr;
 		}
 
 		const std::string raw = req->toString();
-		if (socket.send(raw.data(), raw.size()) < 0) {
-			socket.close();
+		if (!sendAll(raw)) {
+			closeConnection();
 			return nullptr;
 		}
 
-		HttpResponseParser parser;
-		char buf[8192];
-		while (!parser.isFinished() && !parser.hasError()) {
-			const int32_t n = socket.recv(buf, sizeof(buf));
-			if (n <= 0) {
-				break;
-			}
-			parser.execute(buf, static_cast<size_t>(n));
+		auto resp = receiveResponse();
+		if (!resp) {
+			closeConnection();
+			return nullptr;
 		}
-		socket.close();
-
-		auto resp = parser.getResponse();
+		if (!req->shouldKeepAlive() || !resp->shouldKeepAlive()) {
+			closeConnection();
+		}
 		if (callback && resp) {
 			callback(resp);
 		}
@@ -143,5 +142,73 @@ namespace crazy {
 		}
 		body += "--" + boundary + "--\r\n";
 		return body;
+	}
+	bool HttpClient::ensureConnection(const std::string& host, uint16_t port) {
+		if (socket_ && socket_->active() &&
+			connectedHost_ == host && connectedPort_ == port) {
+			return true;
+		}
+		closeConnection();
+		auto socket = std::make_shared<Socket>();
+		if (!socket->connect(host, port)) {
+			return false;
+		}
+		socket_ = std::move(socket);
+		connectedHost_ = host;
+		connectedPort_ = port;
+		return true;
+	}
+	bool HttpClient::sendAll(const std::string& data) {
+		if (!socket_) {
+			return false;
+		}
+		size_t offset = 0;
+		while (offset < data.size()) {
+			const int32_t sent = socket_->send(data.data() + offset, data.size() - offset);
+			if (sent <= 0) {
+				if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+					continue;
+				}
+				return false;
+			}
+			offset += static_cast<size_t>(sent);
+		}
+		return true;
+	}
+	HttpResponse::ptr HttpClient::receiveResponse() {
+		if (!socket_) {
+			return nullptr;
+		}
+		HttpResponseParser parser;
+		char buffer[8192];
+		while (!parser.isFinished() && !parser.hasError()) {
+			if (recvBuffer_.empty()) {
+				const int32_t received = socket_->recv(buffer, sizeof(buffer));
+				if (received <= 0) {
+					return nullptr;
+				}
+				recvBuffer_.append(buffer, static_cast<size_t>(received));
+			}
+			const size_t consumed = parser.execute(recvBuffer_.data(), recvBuffer_.size());
+			if (consumed == 0 && !parser.isFinished()) {
+				return nullptr;
+			}
+			if (consumed > 0) {
+				recvBuffer_.erase(0, consumed);
+			}
+		}
+		if (parser.hasError() || !parser.isFinished()) {
+			return nullptr;
+		}
+		return parser.getResponse();
+	}
+	void HttpClient::closeConnection() {
+		if (socket_) {
+			socket_->close();
+			socket_.reset();
+		}
+		connectedHost_.clear();
+		connectedPort_ = 0;
+		recvBuffer_.clear();
 	}
 }  // namespace crazy

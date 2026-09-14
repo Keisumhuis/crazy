@@ -101,7 +101,11 @@ namespace crazy {
 		}
 		result += "\r\n";
 
-		if (!body().empty() && !headers().contains("Content-Length")) {
+		const int statusCode = static_cast<int>(status_);
+		if (!headers().contains("Content-Length") &&
+			(statusCode < 100 || statusCode >= 200) &&
+			status_ != HttpStatus::NO_CONTENT &&
+			status_ != HttpStatus::NOT_MODIFIED) {
 			result += "Content-Length: ";
 			result += std::to_string(body().size());
 			result += "\r\n";
@@ -131,6 +135,13 @@ namespace crazy {
 		const auto accept = headers().get("Sec-WebSocket-Accept");
 		return accept && !accept->empty();
 	}
+	bool HttpResponse::shouldKeepAlive() const {
+		if (version().getMajor() > 1 ||
+			(version().getMajor() == 1 && version().getMinor() >= 1)) {
+			return !hasHeaderToken(headers(), "Connection", "close");
+		}
+		return hasHeaderToken(headers(), "Connection", "keep-alive");
+	}
 
 	HttpResponseParser::HttpResponseParser()
 		: response_(std::make_shared<HttpResponse>()) {
@@ -146,12 +157,21 @@ namespace crazy {
 		settings_.on_message_complete = &HttpResponseParser::onMessageComplete;
 	}
 	size_t HttpResponseParser::execute(const char* data, size_t length) {
-		if (data == nullptr || length == 0 || finished_ || error_) {
+		if (data == nullptr || length == 0 || error_) {
 			return 0;
+		}
+		if (finished_) {
+			if (!keepAlive_) {
+				return 0;
+			}
+			http_parser_pause(&parser_, 0);
+			finished_ = false;
 		}
 		const size_t consumed = http_parser_execute(&parser_, &settings_, data, length);
 		if (HTTP_PARSER_ERRNO(&parser_) != HPE_OK) {
-			error_ = true;
+			if (HTTP_PARSER_ERRNO(&parser_) != HPE_PAUSED) {
+				error_ = true;
+			}
 		}
 		if (parser_.upgrade) {
 			finished_ = true;
@@ -167,10 +187,21 @@ namespace crazy {
 	bool HttpResponseParser::hasError() const {
 		return error_;
 	}
+	bool HttpResponseParser::shouldKeepAlive() const {
+		return keepAlive_;
+	}
 	HttpResponse::ptr HttpResponseParser::getResponse() const {
 		return response_;
 	}
-	int32_t HttpResponseParser::onMessageBegin(http_parser*) {
+	int32_t HttpResponseParser::onMessageBegin(http_parser* parser) {
+		HttpResponseParser* self = parserFrom(parser);
+		self->response_ = std::make_shared<HttpResponse>();
+		self->headerField_.clear();
+		self->headerValue_.clear();
+		self->body_.clear();
+		self->reasonPhrase_.clear();
+		self->headerValueSeen_ = false;
+		self->keepAlive_ = false;
 		return 0;
 	}
 	int32_t HttpResponseParser::onStatus(http_parser* parser, const char* data, size_t length) {
@@ -244,7 +275,9 @@ namespace crazy {
 			self->response_->parseMultipart();
 			self->response_->parseFormUrlEncoded();
 			self->headerValueSeen_ = false;
+			self->keepAlive_ = http_should_keep_alive(parser) != 0;
 			self->finished_ = true;
+			http_parser_pause(parser, 1);
 			return 0;
 		}
 		catch (...) {

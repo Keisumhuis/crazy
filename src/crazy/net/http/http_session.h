@@ -135,6 +135,14 @@ namespace crazy {
 		 */
 		void onClose();
 		/**
+		 * @brief 解析接收缓冲区中的 HTTP 请求.
+		 */
+		void processReadBuffer();
+		/**
+		 * @brief 响应发送完成后继续处理后续请求.
+		 */
+		void onResponseFlushed();
+		/**
 		 * @brief 处理 WebSocket 握手升级.
 		 */
 		void handleWebSocketUpgrade(HttpRequest::ptr request);
@@ -170,6 +178,8 @@ namespace crazy {
 		HttpRouter::ptr router_;
 		//! 请求解析器
 		HttpRequestParser parser_;
+		//! 当前 HTTP 消息之外尚未消费的数据
+		std::string recvBuffer_;
 		//! 发送缓冲
 		std::string sendBuffer_;
 		//! 注册事件回调
@@ -180,6 +190,10 @@ namespace crazy {
 		std::function<void()> closeCallback_;
 		//! 是否注册写事件
 		bool writeRegistered_ = false;
+		//! 当前请求是否正在等待响应
+		bool requestInFlight_ = false;
+		//! 当前响应完成后是否允许复用连接
+		bool currentRequestKeepAlive_ = false;
 		//! 写完后关闭连接
 		bool closeAfterWrite_ = false;
 		//! 会话线程任务回调

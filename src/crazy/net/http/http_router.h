@@ -452,11 +452,11 @@ namespace crazy {
 			key += '/';
 		}
 		else if (path[0] == '/') {
-			key += path;
+			key += crazy::StringUtil::ToLower(path);
 		}
 		else {
 			key += '/';
-			key += path;
+			key += crazy::StringUtil::ToLower(path);
 		}
 		return key;
 	}

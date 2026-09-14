@@ -1,57 +1,81 @@
-# crazy
+# crazy Documentation Index
 
-A lightweight C++17 foundational framework library with Actor-based concurrency, networking, logging, configuration, serialization, database connection pools, memory mapping, locks, and common utility wrappers.
+[Chinese documentation](README.md) | [English documentation index](doc/README.en.md)
 
-- **Language standard**: C++17
-- **Build system**: CMake 3.15+
-- **Current version**: 1.0.2
-- **Documentation**: [English Manual](doc/README.en.md) | [中文](README.md)
+## Getting Started
 
-## Quick Links
+| Document | Description |
+|----------|-------------|
+| [Feature overview](doc/en/overview.md) | Project scope, modules, and a minimal example |
+| [Build](doc/en/build.md) | CMake options, platform scripts, and dependencies |
+| [Project integration](doc/en/integration.md) | Aggregate headers, CMake targets, and manual linking |
+| [Testing](doc/en/testing.md) | Test builds, execution, and target groups |
 
-| Topic | Link |
-|------|------|
-| Feature overview | [doc/README.en.md#feature-overview](doc/README.en.md#feature-overview) |
-| Build | [doc/README.en.md#build](doc/README.en.md#build) |
-| Project integration | [doc/README.en.md#project-integration](doc/README.en.md#project-integration) |
-| Application and Actor | [doc/README.en.md#application-and-actor](doc/README.en.md#application-and-actor) |
-| Send CLI commands to Actors | [doc/README.en.md#send-cli-commands-to-actors](doc/README.en.md#send-cli-commands-to-actors) |
-| Networking | [doc/README.en.md#networking](doc/README.en.md#networking) |
-| Logging and configuration | [Logging](doc/README.en.md#logging) / [Configuration](doc/README.en.md#configuration) |
-| Encryption | [doc/README.en.md#encryption](doc/README.en.md#encryption) |
-| JSON, binary protocol, reflection | [JSON](doc/README.en.md#json-serialization) / [Binary Protocol and Reflection](doc/README.en.md#binary-protocol-and-reflection) |
-| MySQL and ClickHouse | [MySQL](doc/README.en.md#mysql) / [ClickHouse](doc/README.en.md#clickhouse) |
-| mmap, Buffer, locks, utilities | [Memory Mapping](doc/README.en.md#memory-mapping) / [Utilities](doc/README.en.md#utilities) |
-| Test programs | [doc/README.en.md#test-programs](doc/README.en.md#test-programs) |
+## Application and Messaging
 
-## Minimal Example
+| Document | Description |
+|----------|-------------|
+| [Application](doc/en/application.md) | Process entry, Actor registration, routing, pool, and lifecycle |
+| [Actor](doc/en/actor.md) | Dedicated threads, queues, async work, and event loops |
+| [MessageBase](doc/en/message.md) | Requests, responses, routing fields, and typed messages |
+| [Daemon](doc/en/daemon.md) | Supervisor/worker mode and restart behavior |
 
-```cpp
-#include "crazy.h"
+## Networking
 
-class Worker : public crazy::ActorInterface {
-public:
-    using crazy::ActorInterface::ActorInterface;
+| Document | Description |
+|----------|-------------|
+| [TCP Socket](doc/en/socket.md) | IPv4 listen, connect, read/write, and partial writes |
+| [LocalSocket](doc/en/local-socket.md) | Host IPC and the Application command socket |
+| [Selector and timers](doc/en/selector.md) | Multiplexing, repeating timers, and daily tasks |
+| [Encoder](doc/en/encoder.md) | Binary MessageBase encoding |
+| [Decoder](doc/en/decoder.md) | Incremental framing, limits, and exceptions |
+| [Session](doc/en/session.md) | Connection buffers, callbacks, and backpressure |
+| [ServiceActor](doc/en/service-actor.md) | TCP server sessions, heartbeat, and business dispatch |
+| [ClientActor](doc/en/client-actor.md) | Outbound connection, disconnect, and heartbeat state |
+| [TelnetServiceActor](doc/en/telnet-service.md) | Password authentication and text command forwarding |
+| [HTTP server](doc/en/http-server.md) | Routes, deferred responses, static files, and listings |
+| [HTTP client](doc/en/http-client.md) | Synchronous requests, connection reuse, and multipart forms |
+| [WebSocket](doc/en/websocket.md) | WebSocket server and blocking client |
+| [SMTP client](doc/en/smtp.md) | Plaintext SMTP, authentication, and text mail |
 
-protected:
-    void handleCommandLineMessageBase(
-        crazy::MessageBase::ptr request,
-        crazy::MessageBase::ptr response) override {
-        response->setData("ok: " + request->getData());
-    }
-};
+## Configuration and Serialization
 
-int main(int argc, char** argv) {
-    crazy::Application app(argc, argv);
-    app.registerActor<Worker>("worker");
-    app.exec();
-}
-```
+| Document | Description |
+|----------|-------------|
+| [Logging](doc/en/logger.md) | Levels, appenders, and custom formats |
+| [Configuration](doc/en/config.md) | INI loading and typed accessors |
+| [Base64](doc/en/base64.md) | Text encoding for binary data |
+| [MD5](doc/en/md5.md) | Compatibility digests and security limits |
+| [JSON serialization](doc/en/json.md) | Primitives, containers, and custom types |
+| [REFLECTION](doc/en/reflection.md) | Field reflection and serialization integration |
+| [Binary protocol](doc/en/protocol.md) | Type tags, manual streams, and reflected values |
 
-After starting the service, send a command from another terminal:
+## Data and Storage
 
-```bash
-./your_app -s worker@ping
-```
+| Document | Description |
+|----------|-------------|
+| [MySQL](doc/en/mysql.md) | Queries, transactions, prepared statements, and pooling |
+| [ClickHouse](doc/en/clickhouse.md) | Queries, Block inserts, and pooling |
+| [Buffer](doc/en/buffer.md) | Read/write cursors, growth, and reuse |
+| [MmapInterface](doc/en/mmap-interface.md) | Open, resize, remap, and close mapped files |
+| [MmapVector](doc/en/mmap-vector.md) | Persistent contiguous arrays over mapped files |
 
-See the [English Manual](doc/README.en.md) for complete module usage.
+## Concurrency
+
+| Document | Description |
+|----------|-------------|
+| [ThreadPool](doc/en/thread-pool.md) | Fixed workers, round-robin, and targeted tasks |
+| [AtomicLock](doc/en/atomic-lock.md) | Spin lock for extremely short sections |
+| [CondMutex](doc/en/cond-mutex.md) | Mutex, condition wait, and signaling |
+| [FileLock](doc/en/file-lock.md) | Cross-process locks and single-instance control |
+| [MVCCLockWrapper](doc/en/mvcc.md) | Lock-free reads, write transactions, and versions |
+
+## Utilities
+
+| Document | Description |
+|----------|-------------|
+| [DateTime](doc/en/date-time.md) | Parsing, formatting, comparison, and calendar arithmetic |
+| [TimeZone](doc/en/time-zone.md) | Fixed offsets, UTC, and local conversion |
+| [URI](doc/en/uri.md) | URI parsing, mutation, comparison, and resolution |
+| [General utilities](doc/en/utilities.md) | Time, UUID, string, path, thread, and endian helpers |
+| [KeyValuePair](doc/en/key-value-pair.md) | Dynamic row values and text/CSV/JSON export |

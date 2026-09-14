@@ -5,8 +5,33 @@
 
 #include "crazy/logger.h"
 #include "crazy/net/http/http_router.h"
+#include "crazy/utils.h"
 
 namespace crazy {
+	namespace {
+		bool hasHeaderToken(const HttpHeader& headers, const std::string& key, const std::string& token) {
+			const auto value = headers.get(key);
+			if (!value) {
+				return false;
+			}
+			const std::string lowerValue = StringUtil::ToLower(StringUtil::Trim(*value));
+			const std::string lowerToken = StringUtil::ToLower(token);
+			size_t offset = 0;
+			while (offset <= lowerValue.size()) {
+				const size_t comma = lowerValue.find(',', offset);
+				const size_t end = comma == std::string::npos ? lowerValue.size() : comma;
+				if (StringUtil::Trim(lowerValue.substr(offset, end - offset)) == lowerToken) {
+					return true;
+				}
+				if (comma == std::string::npos) {
+					break;
+				}
+				offset = comma + 1;
+			}
+			return false;
+		}
+	}  // namespace
+
 	HttpSession::HttpSession(Socket::ptr socket, HttpRouter::ptr router)
 		: socket_(std::move(socket)), router_(std::move(router)) {
 		websocket_parser_init(&wsParser_);
@@ -46,14 +71,8 @@ namespace crazy {
 			websocket_parser_execute(&wsParser_, &wsSettings_, buffer, static_cast<size_t>(length));
 			return;
 		}
-		parser_.execute(buffer, static_cast<size_t>(length));
-		if (parser_.hasError()) {
-			onClose();
-			return;
-		}
-		if (parser_.isFinished()) {
-			handleRequest(parser_.getRequest());
-		}
+		recvBuffer_.append(buffer, static_cast<size_t>(length));
+		processReadBuffer();
 	}
 	void HttpSession::onWriteEvent() {
 		flushWrite();
@@ -66,9 +85,8 @@ namespace crazy {
 				unregisterEvent_(socket(), SelectorEventType::write);
 			}
 		}
-		if (sendBuffer_.empty() && closeAfterWrite_) {
-			closeAfterWrite_ = false;
-			onClose();
+		if (sendBuffer_.empty()) {
+			onResponseFlushed();
 		}
 	}
 	void HttpSession::registerEventCallback(
@@ -91,13 +109,62 @@ namespace crazy {
 			socket_->close();
 		}
 	}
+	void HttpSession::processReadBuffer() {
+		if (closed_ || upgraded_ || requestInFlight_) {
+			return;
+		}
+		while (!closed_ && !upgraded_ && !requestInFlight_ && !recvBuffer_.empty()) {
+			const size_t consumed = parser_.execute(recvBuffer_.data(), recvBuffer_.size());
+			if (parser_.hasError()) {
+				onClose();
+				return;
+			}
+			if (consumed == 0) {
+				return;
+			}
+			recvBuffer_.erase(0, consumed);
+			if (!parser_.isFinished()) {
+				return;
+			}
+			requestInFlight_ = true;
+			handleRequest(parser_.getRequest());
+			return;
+		}
+	}
+	void HttpSession::onResponseFlushed() {
+		if (closed_ || !sendBuffer_.empty()) {
+			return;
+		}
+		if (closeAfterWrite_) {
+			closeAfterWrite_ = false;
+			onClose();
+			return;
+		}
+		requestInFlight_ = false;
+		if (upgraded_) {
+			if (!recvBuffer_.empty()) {
+				websocket_parser_execute(&wsParser_, &wsSettings_,
+					recvBuffer_.data(), recvBuffer_.size());
+				recvBuffer_.clear();
+			}
+			return;
+		}
+		processReadBuffer();
+	}
 	void HttpSession::handleRequest(HttpRequest::ptr request) {
+		currentRequestKeepAlive_ = request->shouldKeepAlive();
 		if (request->isWebSocketHandshake()) {
 			handleWebSocketUpgrade(request);
 			return;
 		}
 		auto response = std::make_shared<HttpResponse>();
 		response->setVersion(request->version());
+		if (request->shouldKeepAlive()) {
+			response->headers().insert("Connection", "keep-alive");
+		}
+		else {
+			response->headers().insert("Connection", "close");
+		}
 		const auto weakSession = weak_from_this();
 		const std::weak_ptr<HttpResponse> weakResponse = response;
 		response->setSendCallback([weakSession, weakResponse](HttpResponse&) {
@@ -150,10 +217,12 @@ namespace crazy {
 			response->headers().insert("Content-Type", "text/plain; charset=utf-8");
 		}
 		if (!response->headers().contains("Connection")) {
-			response->headers().insert("Connection", "close");
+			response->headers().insert("Connection", "keep-alive");
 		}
+		const bool keepAlive = currentRequestKeepAlive_ &&
+			!hasHeaderToken(response->headers(), "Connection", "close");
 		sendBuffer_ += response->toString();
-		closeAfterWrite_ = true;
+		closeAfterWrite_ = !keepAlive;
 		flushWrite();
 		if (closed_) {
 			return;
@@ -164,9 +233,8 @@ namespace crazy {
 				registerEvent_(socket(), SelectorEventType::write, std::bind(&HttpSession::onWriteEvent, shared_from_this()));
 			}
 		}
-		if (sendBuffer_.empty() && closeAfterWrite_) {
-			closeAfterWrite_ = false;
-			onClose();
+		if (sendBuffer_.empty()) {
+			onResponseFlushed();
 		}
 	}
 	void HttpSession::flushWrite() {
@@ -236,6 +304,9 @@ namespace crazy {
 		upgraded_ = true;
 		if (wsConnectCallback_) {
 			wsConnectCallback_(shared_from_this());
+		}
+		if (sendBuffer_.empty()) {
+			onResponseFlushed();
 		}
 	}
 	void HttpSession::handleWebSocketMessage(const std::string& data, WebSocketOpCode opcode) {

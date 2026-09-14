@@ -82,6 +82,41 @@ int main() {
 	CHECK(fields[1].first == "age");
 	CHECK(fields[1].second == "13");
 
+	const std::string pipelinedRequests =
+		"GET /one HTTP/1.1\r\n"
+		"Host: example.com\r\n"
+		"Connection: keep-alive\r\n"
+		"\r\n"
+		"GET /two HTTP/1.1\r\n"
+		"Host: example.com\r\n"
+		"Connection: close\r\n"
+		"\r\n";
+	crazy::HttpRequestParser pipelinedParser;
+	const size_t firstRequestBytes =
+		pipelinedParser.execute(pipelinedRequests);
+	CHECK(firstRequestBytes > 0);
+	CHECK(firstRequestBytes < pipelinedRequests.size());
+	CHECK(pipelinedParser.isFinished());
+	CHECK(pipelinedParser.shouldKeepAlive());
+	CHECK(pipelinedParser.getRequest()->uri().getPath() == "/one");
+	const size_t secondRequestBytes = pipelinedParser.execute(
+		pipelinedRequests.data() + firstRequestBytes,
+		pipelinedRequests.size() - firstRequestBytes);
+	CHECK(secondRequestBytes == pipelinedRequests.size() - firstRequestBytes);
+	CHECK(pipelinedParser.isFinished());
+	CHECK(!pipelinedParser.shouldKeepAlive());
+	CHECK(pipelinedParser.getRequest()->uri().getPath() == "/two");
+
+	const std::string closeRequest =
+		"GET /close HTTP/1.1\r\n"
+		"Host: example.com\r\n"
+		"Connection: close\r\n"
+		"\r\n";
+	crazy::HttpRequestParser closeRequestParser;
+	CHECK(closeRequestParser.execute(closeRequest) == closeRequest.size());
+	CHECK(closeRequestParser.isFinished());
+	CHECK(!closeRequestParser.shouldKeepAlive());
+
 	const std::string responseRaw =
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/plain\r\n"
@@ -97,6 +132,7 @@ int main() {
 	CHECK(parsedResponse->status() == crazy::HttpStatus::OK);
 	CHECK(parsedResponse->reasonPhrase() == "OK");
 	CHECK(parsedResponse->body() == "ok");
+	CHECK(responseParser.shouldKeepAlive());
 	CHECK(parsedResponse->parseMultipart() == nullptr);
 	CHECK(parsedResponse->parseFormUrlEncoded().empty());
 

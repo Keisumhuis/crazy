@@ -123,6 +123,13 @@ namespace crazy {
 		return key && !key->empty() &&
 			hasHeaderToken(headers(), "Sec-WebSocket-Version", "13");
 	}
+	bool HttpRequest::shouldKeepAlive() const {
+		if (version().getMajor() > 1 ||
+			(version().getMajor() == 1 && version().getMinor() >= 1)) {
+			return !hasHeaderToken(headers(), "Connection", "close");
+		}
+		return hasHeaderToken(headers(), "Connection", "keep-alive");
+	}
 
 	HttpRequestParser::HttpRequestParser()
 		: request_(std::make_shared<HttpRequest>(Uri())) {
@@ -138,12 +145,21 @@ namespace crazy {
 		settings_.on_message_complete = &HttpRequestParser::onMessageComplete;
 	}
 	size_t HttpRequestParser::execute(const char* data, size_t length) {
-		if (data == nullptr || length == 0 || finished_ || error_) {
+		if (data == nullptr || length == 0 || error_) {
 			return 0;
+		}
+		if (finished_) {
+			if (!keepAlive_) {
+				return 0;
+			}
+			http_parser_pause(&parser_, 0);
+			finished_ = false;
 		}
 		const size_t consumed = http_parser_execute(&parser_, &settings_, data, length);
 		if (HTTP_PARSER_ERRNO(&parser_) != HPE_OK) {
-			error_ = true;
+			if (HTTP_PARSER_ERRNO(&parser_) != HPE_PAUSED) {
+				error_ = true;
+			}
 		}
 		if (parser_.upgrade) {
 			finished_ = true;
@@ -159,10 +175,21 @@ namespace crazy {
 	bool HttpRequestParser::hasError() const {
 		return error_;
 	}
+	bool HttpRequestParser::shouldKeepAlive() const {
+		return keepAlive_;
+	}
 	HttpRequest::ptr HttpRequestParser::getRequest() const {
 		return request_;
 	}
-	int32_t HttpRequestParser::onMessageBegin(http_parser*) {
+	int32_t HttpRequestParser::onMessageBegin(http_parser* parser) {
+		HttpRequestParser* self = parserFrom(parser);
+		self->request_ = std::make_shared<HttpRequest>(Uri());
+		self->url_.clear();
+		self->headerField_.clear();
+		self->headerValue_.clear();
+		self->body_.clear();
+		self->headerValueSeen_ = false;
+		self->keepAlive_ = false;
 		return 0;
 	}
 	int32_t HttpRequestParser::onUrl(http_parser* parser, const char* data, size_t length) {
@@ -237,7 +264,9 @@ namespace crazy {
 			self->request_->parseMultipart();
 			self->request_->parseFormUrlEncoded();
 			self->headerValueSeen_ = false;
+			self->keepAlive_ = http_should_keep_alive(parser) != 0;
 			self->finished_ = true;
+			http_parser_pause(parser, 1);
 			return 0;
 		}
 		catch (...) {

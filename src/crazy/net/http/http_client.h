@@ -15,6 +15,7 @@
 #include "crazy/net/http/http_header.h"
 #include "crazy/net/http/http_request.h"
 #include "crazy/net/http/http_response.h"
+#include "crazy/net/socket.h"
 
 namespace crazy {
 	/**
@@ -104,7 +105,33 @@ namespace crazy {
 		static std::string buildMultipartBody(const std::vector<FormDataField>& fields, const std::vector<FormDataFile>& files, const std::string& boundary);
 
 	private:
+		/**
+		 * @brief 确保当前请求目标的连接已经建立.
+		 */
+		bool ensureConnection(const std::string& host, uint16_t port);
+		/**
+		 * @brief 发送全部请求数据.
+		 */
+		bool sendAll(const std::string& data);
+		/**
+		 * @brief 从当前连接读取完整响应.
+		 */
+		HttpResponse::ptr receiveResponse();
+		/**
+		 * @brief 关闭当前 HTTP 连接.
+		 */
+		void closeConnection();
+
+	private:
 		//! 默认请求头
 		HttpHeader headers_;
+		//! 当前复用的 HTTP 连接
+		Socket::ptr socket_;
+		//! 当前连接对应的主机
+		std::string connectedHost_;
+		//! 当前连接对应的端口
+		uint16_t connectedPort_ = 0;
+		//! 当前连接中尚未消费的响应数据
+		std::string recvBuffer_;
 	};
 }  // namespace crazy

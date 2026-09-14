@@ -61,6 +61,10 @@ namespace crazy {
 		 */
 		bool isWebSocketHandshake() const;
 		/**
+		 * @brief 判断当前响应完成后连接是否可以复用.
+		 */
+		bool shouldKeepAlive() const;
+		/**
 		 * @brief 将 HTTP 响应序列化为字符串.
 		 */
 		std::string toString() const override;
@@ -126,6 +130,10 @@ namespace crazy {
 		 */
 		bool hasError() const;
 		/**
+		 * @brief 判断当前响应完成后连接是否可以复用.
+		 */
+		bool shouldKeepAlive() const;
+		/**
 		 * @brief 获取解析得到的响应对象.
 		 */
 		HttpResponse::ptr getResponse() const;
@@ -185,5 +193,7 @@ namespace crazy {
 		bool finished_ = false;
 		//! 是否解析出错
 		bool error_ = false;
+		//! 当前响应完成后连接是否可以复用
+		bool keepAlive_ = false;
 	};
 }
