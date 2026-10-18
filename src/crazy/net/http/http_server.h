@@ -15,6 +15,7 @@
 #include "crazy/net/http/http_router.h"
 #include "crazy/net/http/http_session.h"
 #include "crazy/net/socket.h"
+#include "crazy/net/tls.h"
 
 namespace crazy {
 	/**
@@ -36,6 +37,14 @@ namespace crazy {
 		 * @brief 开始监听.
 		 */
 		bool listen(uint16_t port, const std::string& address = "0.0.0.0");
+		/**
+		 * @brief 开始监听（可带 TLS 上下文）.
+		 */
+		bool listen(uint16_t port, const std::string& address, const TlsContext::ptr& tlsContext);
+		/**
+		 * @brief 获取监听使用的 TLS 上下文.
+		 */
+		const TlsContext::ptr& tlsContext() const;
 		/**
 		 * @brief 获取监听 socket.
 		 */
@@ -97,5 +106,7 @@ namespace crazy {
 		HttpRouter::ptr router_;
 		//! 监听 socket
 		Socket::ptr acceptor_;
+		//! 监听使用的 TLS 上下文（为空表示明文）
+		TlsContext::ptr tlsContext_;
 	};
 }

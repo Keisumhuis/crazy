@@ -33,8 +33,8 @@
 | [ServiceActor](doc/zh/service-actor.md) | TCP 服务端会话、心跳和业务入口 |
 | [ClientActor](doc/zh/client-actor.md) | 客户端连接、断线和心跳状态 |
 | [TelnetServiceActor](doc/zh/telnet-service.md) | 密码认证和文本命令转发 |
-| [HTTP 服务端](doc/zh/http-server.md) | 路由、延迟响应、静态文件和目录列表 |
-| [HTTP 客户端](doc/zh/http-client.md) | 同步请求、连接复用和 multipart 上传 |
+| [HTTP 服务端](doc/zh/http-server.md) | 路由、延迟响应、分块响应、静态文件分片（Range）下载和目录列表 |
+| [HTTP 客户端](doc/zh/http-client.md) | 同步/事件驱动请求、连接复用、multipart 与分块上传 |
 | [WebSocket](doc/zh/websocket.md) | WebSocket 服务端和阻塞式客户端 |
 | [SMTP 客户端](doc/zh/smtp.md) | 明文 SMTP、认证和文本邮件发送 |
 

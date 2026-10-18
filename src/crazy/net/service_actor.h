@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file service_actor.h
  * @author kesium (keisumhuis@gmail.com)
  * @brief 服务端actor
@@ -42,6 +42,10 @@ namespace crazy {
 		 * @brief 析构函数.
 		 */
 		virtual ~ServiceActor();
+		/**
+		 * @brief 获取命令帮助手册.
+		 */
+		std::map<std::string, std::string> helps() override;
 
 	protected:
 		/**
@@ -61,6 +65,12 @@ namespace crazy {
 		 * @param message 消息
 		 */
 		void handleMessageBase(MessageBase::ptr message) override;
+		/**
+		 * @brief 处理命令行消息.
+		 * @param request 请求消息
+		 * @param response 应答消息
+		 */
+		void handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response) override;
 		/**
 		 * @brief 保活检测.
 		 */

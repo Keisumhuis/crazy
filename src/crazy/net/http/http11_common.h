@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <string>
 
 #include "crazy/net/http/http_parser.h"
@@ -53,4 +54,13 @@ namespace crazy {
 	 * @brief 将http状态码字符串转换为枚举.
 	 */
 	HttpStatus httpStatusFromString(const std::string& status);
+	/**
+	 * @brief 把分块长度格式化为小写十六进制文本.
+	 */
+	std::string httpChunkSizeToHex(std::size_t size);
+	/**
+	 * @brief 按 RFC 7230 第 4.1 节编码一个数据块：<十六进制长度>\r\n<数据>\r\n.
+	 * @note 空数据不产生数据块（终止块由调用方单独写出）.
+	 */
+	std::string httpEncodeChunk(const std::string& data);
 }

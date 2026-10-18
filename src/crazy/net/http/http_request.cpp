@@ -1,6 +1,8 @@
 #include "crazy/net/http/http_request.h"
 
+#include <algorithm>
 #include <random>
+#include <stdexcept>
 #include <utility>
 
 #include "crazy/encryption/base64.h"
@@ -81,6 +83,16 @@ namespace crazy {
 		uri_ = Uri(uri);
 	}
 	std::string HttpRequest::toString() const {
+		const bool chunked = chunkedTransferEncoding_;
+		if (chunked && headers().contains("Content-Length")) {
+			throw std::logic_error("chunked request must not set Content-Length");
+		}
+		if (chunked &&
+			(version().getMajor() < 1 || (version().getMajor() == 1 && version().getMinor() < 1))) {
+			// 分块传输编码是 HTTP/1.1 引入的：HTTP/1.0 请求体只能用 Content-Length 界定，
+			// 这里直接报错，避免把对方无法解析的报文发出去
+			throw std::logic_error("chunked request requires HTTP/1.1");
+		}
 		std::string result = httpMethodToString(method());
 		result += ' ';
 		result += uri().toString();
@@ -88,7 +100,7 @@ namespace crazy {
 		result += version().toString();
 		result += "\r\n";
 
-		if (!body().empty() && !headers().contains("Content-Length")) {
+		if (!chunked && !body().empty() && !headers().contains("Content-Length")) {
 			result += "Content-Length: ";
 			result += std::to_string(body().size());
 			result += "\r\n";
@@ -100,9 +112,40 @@ namespace crazy {
 			result += header.second;
 			result += "\r\n";
 		}
+		if (chunked && !headers().contains("Transfer-Encoding")) {
+			result += "Transfer-Encoding: chunked\r\n";
+		}
 		result += "\r\n";
-		result += body();
+		if (!chunked) {
+			result += body();
+			return result;
+		}
+
+		// 分块上传：按 chunkSize 切分请求体，帧格式见 RFC 7230 第 4.1 节
+		const std::size_t chunkSize = chunkSize_ == 0 ? 8192 : chunkSize_;
+		std::size_t offset = 0;
+		while (offset < body().size()) {
+			const std::size_t length = std::min(chunkSize, body().size() - offset);
+			result += httpChunkSizeToHex(length);
+			result += "\r\n";
+			result.append(body(), offset, length);
+			result += "\r\n";
+			offset += length;
+		}
+		result += "0\r\n\r\n";
 		return result;
+	}
+	void HttpRequest::setChunkedTransferEncoding(bool enabled) {
+		chunkedTransferEncoding_ = enabled;
+	}
+	bool HttpRequest::isChunkedTransferEncoding() const {
+		return chunkedTransferEncoding_;
+	}
+	void HttpRequest::setChunkSize(std::size_t chunkSize) {
+		chunkSize_ = chunkSize == 0 ? 8192 : chunkSize;
+	}
+	std::size_t HttpRequest::chunkSize() const {
+		return chunkSize_;
 	}
 	bool HttpRequest::isWebSocket() const {
 		if (method_ != HttpMethod::GET) {
@@ -181,6 +224,9 @@ namespace crazy {
 	HttpRequest::ptr HttpRequestParser::getRequest() const {
 		return request_;
 	}
+	bool HttpRequestParser::expectContinue() const {
+		return expectContinue_;
+	}
 	int32_t HttpRequestParser::onMessageBegin(http_parser* parser) {
 		HttpRequestParser* self = parserFrom(parser);
 		self->request_ = std::make_shared<HttpRequest>(Uri());
@@ -189,6 +235,8 @@ namespace crazy {
 		self->headerValue_.clear();
 		self->body_.clear();
 		self->headerValueSeen_ = false;
+		self->headersComplete_ = false;
+		self->expectContinue_ = false;
 		self->keepAlive_ = false;
 		return 0;
 	}
@@ -238,6 +286,14 @@ namespace crazy {
 			self->request_->setMethod(static_cast<HttpMethod>(parser->method));
 			self->request_->setUri(self->url_);
 			self->url_.clear();
+			// 此后的头字段属于 trailer（分块消息尾部）
+			self->headersComplete_ = true;
+			// Expect: 100-continue 只在 HTTP/1.1 及以上版本生效
+			const HttpVersion version = self->request_->version();
+			if (version >= HttpVersions::HTTP_1_1 &&
+				hasHeaderToken(self->request_->headers(), "Expect", "100-continue")) {
+				self->expectContinue_ = true;
+			}
 			return 0;
 		}
 		catch (...) {
@@ -276,7 +332,9 @@ namespace crazy {
 	}
 	void HttpRequestParser::commitHeader() {
 		if (!headerField_.empty()) {
-			request_->headers().insert(headerField_, headerValue_);
+			// 头段结束之后收到的字段属于 trailer，不得混进 headers
+			HttpHeader& target = headersComplete_ ? request_->trailers() : request_->headers();
+			target.insert(headerField_, headerValue_);
 			headerField_.clear();
 			headerValue_.clear();
 		}

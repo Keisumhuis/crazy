@@ -57,6 +57,19 @@ if (ws.connect("ws://127.0.0.1:8080/chat")) {
 
 `connect()` 和 `run()` 都按阻塞方式工作。客户端帧会自动加 mask，服务端会处理 text、binary、ping、pong 和 close 帧。
 
+### WSS（WebSocket over TLS）
+
+`wss://` **真的走 TLS**：与 `HttpClient` 使用同一套 TLS 实现与同一节 `[HTTP]`/`[http]` 配置
+（`tls_ca_file` / `tls_verify_peer` / `tls_min_version`，见 [HTTP 客户端](http-client.md)）。
+
+- 握手或证书校验失败时 `connect()` 返回 `false`，**绝不退化成明文**；
+- 构建期用 `-DCRAZY_ENABLE_TLS=OFF` 显式关闭 TLS 支持时（默认是 `ON`），`wss://` 同样返回 `false`，且不会建立任何 TCP 连接。
+
+> **编译期默认支持 ≠ 运行期默认启用。** 只有 `wss://` 才真正走 TLS；`ws://` 依旧是明文。
+
+服务端侧不需要任何额外代码：TLS 在 Socket 层完成，WebSocket 升级与帧解析只看到解密后的字节流
+（详见 [HTTP 服务端](http-server.md) 的 HTTPS 小节）。
+
 ## 握手过程
 
 服务端在 HTTP 请求中发现 Upgrade 头后校验 WebSocket Key，并返回 `101 Switching Protocols` 和 `Sec-WebSocket-Accept`。`HttpSession` 随后切换到 WebSocket 帧解析模式。客户端通过 `HttpRequest::createWebSocketRequest()` 生成升级请求，并验证响应中的 Accept 值。
@@ -103,7 +116,48 @@ void configureWebSocket(crazy::HttpApplication& app) {
 | `sendBinary(data)` | 发送二进制帧 |
 | `sendClose(code)` | 发送关闭帧 |
 | `run()` | 阻塞读取帧并触发消息回调 |
+| `connectAsync(uri, error)` | 建连并发出握手请求后立即返回（事件驱动） |
+| `onReadable()` / `onWritable()` | selector 驱动的收发入口 |
+| `registerSelectorCallbacks()` | 绑定事件注册/注销（通常指向 actor 的 `registerEventOnThread`） |
 | `close()` / `isConnected()` | 查询和释放客户端连接 |
+
+## 事件驱动（注册到 selector / actor）
+
+`connectAsync()` 建连并发出握手请求后立即返回，握手响应与之后所有帧都由 selector 驱动的
+`onReadable()` 处理，回调在 selector 线程触发；有积压数据时客户端自己挂上写事件。
+
+```cpp
+class ChatActor : public crazy::ActorInterface {
+public:
+    ChatActor() : ActorInterface("chat") {}
+
+    void init() override {
+        ws_.registerMessageCallback([](const std::string& data, crazy::WebSocketClient::OpCode opcode) {
+            CRAZY_SYSTEM_INFO() << data;
+        });
+        ws_.registerCloseCallback([] { CRAZY_SYSTEM_INFO() << "ws closed"; });
+        ws_.registerSelectorCallbacks(
+            [this](int32_t fd, crazy::SelectorEventType type, std::function<void()> callback) {
+                registerEventOnThread(fd, type, std::move(callback));
+            },
+            [this](int32_t fd, crazy::SelectorEventType type) {
+                unregisterEventOnThread(fd, type);
+            });
+        std::string error;
+        if (!ws_.connectAsync("wss://example.com/chat", error)) {
+            CRAZY_SYSTEM_ERROR() << "connect failed: " << error;
+        }
+    }
+
+private:
+    crazy::WebSocketClient ws_;
+};
+```
+
+- 回调都在 selector 线程；从别的线程发消息请走 `ActorInterface::enqueueFunction()`；
+- 发送自动进缓冲，写不出去时等写事件；`sendClose()` 等缓冲发完再关闭；
+- 心跳用 `Selector::registerTimer()` 定时 `sendText()` 即可；
+- 不用 actor 时把这两个回调直接绑到 `crazy::Selector::registerEvent` / `unregisterEvent`（见 `tests/test_websocket_client_async.cc`）。
 
 ## 客户端重连策略
 

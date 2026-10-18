@@ -15,9 +15,25 @@ heartbeat_interval = 5000
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `address` | `0.0.0.0` | 绑定地址 |
+| `address` | `0.0.0.0` | 绑定地址；填 IPv4 字面量走 IPv4，填 IPv6 字面量（`::1`、`::`、`[::1]`）走 IPv6 |
 | `port` | `8901` | 监听端口 |
 | `heartbeat_interval` | `5000` | 心跳检查间隔，毫秒 |
+
+`address` 缺省 `0.0.0.0` 表示「仅 IPv4」，行为与旧版本一致。写成 IPv6 字面量即可监听 IPv6：
+
+```ini
+[service]
+address = "::1"   ; 仅 IPv6 回环
+port = 9090
+```
+
+```ini
+[service]
+address = "::"    ; 仅 IPv6 全地址（不隐式双栈）
+port = 9090
+```
+
+注意：`ServiceActor` 的配置层**不暴露双栈开关**，配置 `::` 得到的是「仅 IPv6」。需要「同一端口同时接受 IPv4 与 IPv6」的调用方应绕过配置、直接调用 `Socket::listen(port, "::", true)`，详见 [Socket 的 IPv6 与双栈](socket.md)。
 
 注册名称就是配置段名称：
 
@@ -74,6 +90,6 @@ int main(int argc, char** argv) {
 
 ## 扩缩容与限流
 
-`ServiceActor` 只提供基础连接管理，不包含连接数配额、认证、限流和 TLS。生产服务应在网络层或业务层补充这些能力，并监控会话数、消息队列和慢客户端发送缓冲区。
+`ServiceActor` 只提供基础连接管理，不包含连接数配额、认证和限流。TLS 的实现位于 **Socket 层**（`crazy::TlsSocket`，见 [Socket](socket.md) 与 [HTTP 服务端](http-server.md) 的 HTTPS 小节），因此 `Session` / `Connection` / `ServiceActor` / `TelnetServiceActor` 将来可以在**不改业务逻辑**的前提下复用同一抽象；但**本次并未给它们接线**，这些服务当前的连接仍是明文。生产服务应在网络层或业务层补充上述能力，并监控会话数、消息队列和慢客户端发送缓冲区。
 
 相关文档：[ClientActor](client-actor.md)、[Session](session.md)、[Socket](socket.md)、[配置管理](config.md)。

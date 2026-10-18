@@ -9,6 +9,7 @@
  */
 #pragma once
 
+#include <iostream>
 #include <memory>
 
 #include "third_party/MySQL/include/mysql.h"

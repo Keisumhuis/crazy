@@ -1,4 +1,4 @@
-#include "crazy/encryption/MD5.h"
+#include "crazy/encryption/md5.h"
 
 namespace crazy {
 

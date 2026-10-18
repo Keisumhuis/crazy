@@ -76,6 +76,24 @@ namespace crazy {
 		 */
 		bool shouldKeepAlive() const;
 		/**
+		 * @brief 设置请求体是否使用分块传输编码（Transfer-Encoding: chunked）.
+		 * @note 分块上传时 `toString()` 不再写 `Content-Length`，请求体按 `chunkSize()` 切块，
+		 * 并以终止块 `0\r\n\r\n` 收尾；业务自行设置 `Content-Length` 时序列化直接抛 `std::logic_error`.
+		 */
+		void setChunkedTransferEncoding(bool enabled);
+		/**
+		 * @brief 判断请求体是否使用分块传输编码.
+		 */
+		bool isChunkedTransferEncoding() const;
+		/**
+		 * @brief 设置分块上传时单个数据块的最大字节数（默认 8192，0 表示使用默认值）.
+		 */
+		void setChunkSize(std::size_t chunkSize);
+		/**
+		 * @brief 获取分块上传时单个数据块的最大字节数.
+		 */
+		std::size_t chunkSize() const;
+		/**
 		 * @brief 将 HTTP 请求序列化为字符串.
 		 */
 		std::string toString() const override;
@@ -85,6 +103,10 @@ namespace crazy {
 		HttpMethod method_ = HttpMethod::GET;
 		//! http请求uri
 		Uri uri_;
+		//! 请求体是否使用分块传输编码
+		bool chunkedTransferEncoding_ = false;
+		//! 分块上传时单个数据块的最大字节数
+		std::size_t chunkSize_ = 8192;
 	};
 
 	/**
@@ -122,6 +144,12 @@ namespace crazy {
 		 * @brief 获取解析得到的请求对象.
 		 */
 		HttpRequest::ptr getRequest() const;
+		/**
+		 * @brief 客户端是否要求 `100 Continue` 临时响应（`Expect: 100-continue`）.
+		 * @note 仅 HTTP/1.1 及以上版本的请求会置位；服务端应在请求体到达前先回
+		 * `HTTP/1.1 100 Continue\r\n\r\n`，否则客户端可能在等待中僵死.
+		 */
+		bool expectContinue() const;
 
 	private:
 		/**
@@ -174,6 +202,10 @@ namespace crazy {
 		std::string body_;
 		//! 当前是否已进入头值状态
 		bool headerValueSeen_ = false;
+		//! 头段是否已经结束（结束后收到的字段属于 trailer）
+		bool headersComplete_ = false;
+		//! 是否要求 100 Continue 临时响应
+		bool expectContinue_ = false;
 		//! 是否解析完成
 		bool finished_ = false;
 		//! 是否解析出错

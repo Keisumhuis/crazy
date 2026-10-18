@@ -1,7 +1,7 @@
 /**
  * @file socket.h
  * @author kesium (keisumhuis@gmail.com)
- * @brief IPV4套接字类
+ * @brief TCP套接字类（默认 IPv4，支持 IPv6 与双栈）
  * @version 0.1
  * @date 16
  *
@@ -13,7 +13,9 @@
 
 namespace crazy {
 	/**
-	 * @brief IPV4套接字类.
+	 * @brief TCP套接字类.
+	 * @note 默认为「仅 IPv4」，与既有行为一致；IPv6 字面量地址（`::1`、`::`、`[::1]`）
+	 * 自动使用 `AF_INET6`，双栈必须由 `listen()` 的 `dualStack` 参数显式开启。
 	 */
 	class Socket : public SocketInterface {
 	public:
@@ -37,9 +39,10 @@ namespace crazy {
 		/**
 		 * @brief 监听地址.
 		 */
-		bool listen(uint64_t port, const std::string& address = "0.0.0.0");
+		bool listen(uint64_t port, const std::string& address = "0.0.0.0", bool dualStack = false);
 		/**
 		 * @brief 链接地址.
+		 * @note IPv6 字面量（可带方括号）走 `AF_INET6`；非字面量主机名继续只产出 IPv4 候选.
 		 */
 		bool connect(const std::string& address, uint64_t port);
 		/**
@@ -52,6 +55,10 @@ namespace crazy {
 		const std::string& localAddress() const;;
 
 	protected:
+		/**
+		 * @brief 构造 accept 出来的客户端 socket.
+		 */
+		virtual Socket::ptr createAcceptedSocket(socket_t acceptedSocket);
 		/**
 		 * @brief 初始化socket.
 		 */
@@ -67,7 +74,7 @@ namespace crazy {
 		/**
 		 * @brief 地址转换.
 		 */
-		std::string sockaddr2string(const sockaddr_in& address);
+		std::string sockaddr2string(const sockaddr* address);
 
 	private:
 		//! 对端地址

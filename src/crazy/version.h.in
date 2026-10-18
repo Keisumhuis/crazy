@@ -11,6 +11,8 @@
 #pragma once
 
 //! 当前提交
-const char* G_GIT_COMMIT = "@GIT_COMMIT@";
+//  C++17 inline 变量：本头会被聚合头 crazy.h 收录，若为非 inline 的全局变量，
+//  所有包含 crazy.h 的翻译单元都会定义同名外部符号（LNK2005/重复定义）。
+inline const char* G_GIT_COMMIT = "@GIT_COMMIT@";
 //! 当前分支
-const char* G_GIT_BRANCH = "@GIT_BRANCH@";
+inline const char* G_GIT_BRANCH = "@GIT_BRANCH@";

@@ -9,11 +9,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -35,6 +38,8 @@ namespace crazy {
 		using ptr = std::shared_ptr<HttpRouter>;
 		//! 路由处理器类型
 		using handler_type = std::function<void(HttpRequest&, HttpResponse&)>;
+		//! 静态文件流式发送时单个数据块的最大字节数
+		static constexpr std::size_t kStaticStreamChunkSize = 64 * 1024;
 		/**
 		 * @brief 构造函数.
 		 */
@@ -175,6 +180,17 @@ namespace crazy {
 			std::filesystem::path directory;
 			bool enableDirectoryListing = false;
 		};
+		//! 静态文件的单区间 Range 请求
+		struct ByteRange {
+			//! 请求带了可识别的单区间 Range
+			bool present = false;
+			//! 区间是否落在文件范围内
+			bool satisfiable = false;
+			//! 起始偏移（含）
+			std::uint64_t first = 0;
+			//! 结束偏移（含）
+			std::uint64_t last = 0;
+		};
 		/**
 		 * @brief 内部注册处理器.
 		 */
@@ -191,6 +207,14 @@ namespace crazy {
 		 * @brief 获取静态文件 MIME 类型.
 		 */
 		static std::string staticFileContentType(const std::filesystem::path& path);
+		/**
+		 * @brief 解析 `Range` 头（只支持单区间；多区间与非法语法按「忽略 Range」处理）.
+		 */
+		static ByteRange parseByteRange(const std::string& value, std::uint64_t size);
+		/**
+		 * @brief 生成静态文件 ETag（随文件大小与修改时间变化，供 If-Range 使用）.
+		 */
+		static std::string staticFileETag(const std::filesystem::path& path, std::uint64_t size);
 		/**
 		 * @brief 生成静态目录页面.
 		 */
@@ -305,29 +329,96 @@ namespace crazy {
 			return true;
 		}
 
-		std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-		if (!file) {
+		std::ifstream probe(filePath, std::ios::binary);
+		if (!probe) {
 			response.setStatus(HttpStatus::NOT_FOUND);
 			response.setBody("Not Found");
 			return true;
 		}
-		const std::streamsize size = file.tellg();
-		if (size < 0) {
-			response.setStatus(HttpStatus::INTERNAL_SERVER_ERROR);
-			response.setBody("Internal Server Error");
-			return true;
-		}
-		std::string body(static_cast<size_t>(size), '\0');
-		file.seekg(0, std::ios::beg);
-		if (size > 0 && !file.read(body.data(), size)) {
-			response.setStatus(HttpStatus::INTERNAL_SERVER_ERROR);
-			response.setBody("Internal Server Error");
+		probe.close();
+
+		std::error_code sizeError;
+		const std::uint64_t fileSize = std::filesystem::file_size(filePath, sizeError);
+		if (sizeError) {
+			response.setStatus(HttpStatus::NOT_FOUND);
+			response.setBody("Not Found");
 			return true;
 		}
 
-		response.setStatus(HttpStatus::OK);
+		const std::string etag = staticFileETag(filePath, fileSize);
+		response.headers().insert("Accept-Ranges", "bytes");
+		response.headers().insert("ETag", etag);
 		response.headers().insert("Content-Type", staticFileContentType(filePath));
-		response.setBody(body);
+
+		std::uint64_t first = 0;
+		std::uint64_t last = fileSize == 0 ? 0 : fileSize - 1;
+		std::uint64_t length = fileSize;
+		bool partial = false;
+		const auto rangeHeader = request.headers().get("Range");
+		if (rangeHeader) {
+			// If-Range 只支持 ETag 形式；不匹配时忽略 Range，返回完整响应（RFC 7233 3.2）
+			const auto ifRange = request.headers().get("If-Range");
+			const bool honorRange = !ifRange || StringUtil::Trim(*ifRange) == etag;
+			if (honorRange) {
+				const ByteRange range = parseByteRange(*rangeHeader, fileSize);
+				if (range.present) {
+					if (!range.satisfiable) {
+						response.setStatus(HttpStatus::RANGE_NOT_SATISFIABLE);
+						response.headers().insert("Content-Range", "bytes */" + std::to_string(fileSize));
+						response.setBody("Range Not Satisfiable");
+						return true;
+					}
+					first = range.first;
+					last = range.last;
+					length = last - first + 1;
+					partial = true;
+				}
+			}
+		}
+		response.setStatus(partial ? HttpStatus::PARTIAL_CONTENT : HttpStatus::OK);
+		if (partial) {
+			response.headers().insert("Content-Range",
+				"bytes " + std::to_string(first) + "-" + std::to_string(last) + "/" + std::to_string(fileSize));
+		}
+		if (fileSize == 0) {
+			// 空文件没有数据可流式发送
+			response.setBody(std::string());
+			return true;
+		}
+
+		// 静态资源默认按分块方式流式发送：不把整个文件读进内存，也不写 Content-Length；
+		// HTTP/1.0 客户端由会话降级为「关闭连接界定响应体」
+		auto file = std::make_shared<std::ifstream>(filePath, std::ios::binary);
+		if (!*file) {
+			response.setStatus(HttpStatus::INTERNAL_SERVER_ERROR);
+			response.setBody("Internal Server Error");
+			return true;
+		}
+		file->seekg(static_cast<std::streamoff>(first), std::ios::beg);
+		if (!*file) {
+			response.setStatus(HttpStatus::INTERNAL_SERVER_ERROR);
+			response.setBody("Internal Server Error");
+			return true;
+		}
+		auto remaining = std::make_shared<std::uint64_t>(length);
+		const std::string displayPath = filePath.string();
+		response.beginChunked([file, remaining, displayPath](std::string& buffer) -> std::size_t {
+			if (*remaining == 0) {
+				return 0;
+			}
+			const std::size_t wanted = static_cast<std::size_t>(
+				std::min<std::uint64_t>(*remaining, kStaticStreamChunkSize));
+			buffer.resize(wanted);
+			file->read(buffer.data(), static_cast<std::streamsize>(wanted));
+			const std::streamsize read = file->gcount();
+			if (read <= 0) {
+				// 读失败：会话捕获异常后强制断开，客户端看到的是截断的响应
+				throw std::runtime_error("static file read fail: " + displayPath);
+			}
+			buffer.resize(static_cast<std::size_t>(read));
+			*remaining -= static_cast<std::uint64_t>(read);
+			return buffer.size();
+		});
 		return true;
 	}
 	inline bool HttpRouter::hasUnsafePathSegment(const std::string& path) {
@@ -362,8 +453,87 @@ namespace crazy {
 		if (extension == ".wasm") return "application/wasm";
 		return "application/octet-stream";
 	}
-	inline std::string HttpRouter::staticDirectoryListing(const std::filesystem::path& directory, const std::string& requestPath, const std::string& basePath) {
-		std::string listingPath = requestPath.empty() ? "/" : requestPath;
+	inline HttpRouter::ByteRange HttpRouter::parseByteRange(const std::string& value, std::uint64_t size) {
+		ByteRange result;
+		const std::string text = StringUtil::Trim(value);
+		if (text.size() < 6 || StringUtil::ToLower(text.substr(0, 6)) != "bytes=") {
+			return result;
+		}
+		const std::string spec = StringUtil::Trim(text.substr(6));
+		if (spec.empty() || spec.find(',') != std::string::npos) {
+			// 多区间不在支持范围内：按「忽略 Range」处理，回完整响应
+			return result;
+		}
+		const std::size_t dash = spec.find('-');
+		if (dash == std::string::npos) {
+			return result;
+		}
+		const std::string firstText = StringUtil::Trim(spec.substr(0, dash));
+		const std::string lastText = StringUtil::Trim(spec.substr(dash + 1));
+		auto parseNumber = [](const std::string& digits, std::uint64_t& out) -> bool {
+			if (digits.empty()) {
+				return false;
+			}
+			std::uint64_t number = 0;
+			for (const char c : digits) {
+				if (c < '0' || c > '9') {
+					return false;
+				}
+				const std::uint64_t digit = static_cast<std::uint64_t>(c - '0');
+				// 圆括号避免 Windows 头文件的 max 宏展开
+				if (number > ((std::numeric_limits<std::uint64_t>::max)() - digit) / 10) {
+					return false;
+				}
+				number = number * 10 + digit;
+			}
+			out = number;
+			return true;
+		};
+		if (firstText.empty()) {
+			// 后缀区间 bytes=-N：取文件末尾 N 字节
+			std::uint64_t suffix = 0;
+			if (!parseNumber(lastText, suffix)) {
+				return result;
+			}
+			result.present = true;
+			if (suffix == 0 || size == 0) {
+				return result;
+			}
+			result.first = size > suffix ? size - suffix : 0;
+			result.last = size - 1;
+			result.satisfiable = true;
+			return result;
+		}
+		std::uint64_t first = 0;
+		if (!parseNumber(firstText, first)) {
+			return result;
+		}
+		std::uint64_t last = size == 0 ? 0 : size - 1;
+		if (!lastText.empty() && !parseNumber(lastText, last)) {
+			return result;
+		}
+		result.present = true;
+		if (size == 0 || first >= size || first > last) {
+			return result;
+		}
+		if (last >= size) {
+			last = size - 1;
+		}
+		result.first = first;
+		result.last = last;
+		result.satisfiable = true;
+		return result;
+	}
+	inline std::string HttpRouter::staticFileETag(const std::filesystem::path& path, std::uint64_t size) {
+		std::error_code error;
+		const auto modified = std::filesystem::last_write_time(path, error);
+		std::int64_t stamp = 0;
+		if (!error) {
+			stamp = static_cast<std::int64_t>(modified.time_since_epoch().count());
+		}
+		return "\"" + std::to_string(size) + "-" + std::to_string(stamp) + "\"";
+	}
+	inline std::string HttpRouter::staticDirectoryListing(const std::filesystem::path& directory, const std::string& requestPath, const std::string& basePath) {		std::string listingPath = requestPath.empty() ? "/" : requestPath;
 		if (listingPath.back() != '/') {
 			listingPath += '/';
 		}

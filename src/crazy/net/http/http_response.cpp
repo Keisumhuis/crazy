@@ -1,5 +1,6 @@
 #include "crazy/net/http/http_response.h"
 
+#include <stdexcept>
 #include <utility>
 
 #include "crazy/encryption/base64.h"
@@ -11,6 +12,9 @@ namespace crazy {
 	namespace {
 		HttpResponseParser* parserFrom(http_parser* parser) {
 			return static_cast<HttpResponseParser*>(parser->data);
+		}
+		bool isContentLength(const std::string& key) {
+			return StringUtil::ToLower(key) == "content-length";
 		}
 		bool hasHeaderToken(const HttpHeader& headers, const std::string& key, const std::string& token) {
 			const auto value = headers.get(key);
@@ -73,7 +77,10 @@ namespace crazy {
 	void HttpResponse::send() {
 		bool expected = false;
 		if (!sent_.compare_exchange_strong(expected, true)) {
-			return;
+			// 非分块响应保持“只发送一次”语义；分块模式下允许多次写出
+			if (!chunked_.load()) {
+				return;
+			}
 		}
 		if (sendCallback_) {
 			sendCallback_(*this);
@@ -88,6 +95,86 @@ namespace crazy {
 	void HttpResponse::setSendCallback(SendCallback callback) {
 		sendCallback_ = std::move(callback);
 	}
+	void HttpResponse::beginChunked(ChunkSource source) {
+		if (chunked_.load()) {
+			return;
+		}
+		if (!source) {
+			throw std::logic_error("chunked response requires a data source");
+		}
+		chunkSource_ = std::move(source);
+		beginChunked();
+	}
+	void HttpResponse::beginChunked() {
+		if (chunked_.load()) {
+			return;
+		}
+		if (sent_.load()) {
+			throw std::logic_error("chunked response can not start after send");
+		}
+		if (headers().contains("Content-Length")) {
+			throw std::logic_error("chunked response must not set Content-Length");
+		}
+		headers().erase("Transfer-Encoding");
+		chunked_.store(true);
+		chunkedFinished_.store(false);
+		send();
+	}
+	void HttpResponse::writeChunk(const std::string& data) {
+		if (!chunked_.load()) {
+			throw std::logic_error("writeChunk requires beginChunked");
+		}
+		if (chunkedFinished_.load()) {
+			throw std::logic_error("writeChunk after endChunked");
+		}
+		if (data.empty()) {
+			// 0 长度块是终止块语义，数据段忽略
+			return;
+		}
+		if (chunkCallback_) {
+			chunkCallback_(*this, data, false);
+		}
+	}
+	void HttpResponse::endChunked() {
+		if (!chunked_.load()) {
+			throw std::logic_error("endChunked requires beginChunked");
+		}
+		bool expected = false;
+		if (!chunkedFinished_.compare_exchange_strong(expected, true)) {
+			return;
+		}
+		if (chunkCallback_) {
+			chunkCallback_(*this, std::string(), true);
+		}
+	}
+	bool HttpResponse::isChunked() const {
+		return chunked_.load();
+	}
+	bool HttpResponse::isChunkedFinished() const {
+		return chunkedFinished_.load();
+	}
+	bool HttpResponse::isStreaming() const {
+		return chunked_.load() && static_cast<bool>(chunkSource_);
+	}
+	const HttpResponse::ChunkSource& HttpResponse::chunkSource() const {
+		return chunkSource_;
+	}
+	void HttpResponse::setChunkedFraming(bool enabled) {
+		chunkedFraming_.store(enabled);
+	}
+	bool HttpResponse::isChunkedFraming() const {
+		return chunkedFraming_.load();
+	}
+	void HttpResponse::addTrailer(const std::string& key, const std::string& value) {
+		if (chunked_.load()) {
+			// 头段已经写出去才追加 trailer，无法再声明 Trailer 头
+			throw std::logic_error("trailer must be added before beginChunked");
+		}
+		trailers().insert(key, value);
+	}
+	void HttpResponse::setChunkCallback(ChunkCallback callback) {
+		chunkCallback_ = std::move(callback);
+	}
 	std::string HttpResponse::toString() const {
 		std::string result = version().toString();
 		result += ' ';
@@ -101,8 +188,12 @@ namespace crazy {
 		}
 		result += "\r\n";
 
+		const bool chunked = chunked_.load();
+		// HTTP/1.0 降级时分块响应不写 Transfer-Encoding / Content-Length，由关闭连接界定响应体
+		const bool chunkedFraming = chunked && chunkedFraming_.load();
 		const int statusCode = static_cast<int>(status_);
-		if (!headers().contains("Content-Length") &&
+		if (!chunked &&
+			!headers().contains("Content-Length") &&
 			(statusCode < 100 || statusCode >= 200) &&
 			status_ != HttpStatus::NO_CONTENT &&
 			status_ != HttpStatus::NOT_MODIFIED) {
@@ -112,13 +203,33 @@ namespace crazy {
 		}
 
 		for (const auto& header : headers()) {
+			if (chunked && isContentLength(header.first)) {
+				continue;
+			}
 			result += header.first;
 			result += ": ";
 			result += header.second;
 			result += "\r\n";
 		}
+		if (chunkedFraming) {
+			if (!trailers().empty() && !headers().contains("Trailer")) {
+				result += "Trailer: ";
+				bool first = true;
+				for (const auto& trailer : trailers()) {
+					if (!first) {
+						result += ", ";
+					}
+					result += trailer.first;
+					first = false;
+				}
+				result += "\r\n";
+			}
+			result += "Transfer-Encoding: chunked\r\n";
+		}
 		result += "\r\n";
-		result += body();
+		if (!chunked) {
+			result += body();
+		}
 		return result;
 	}
 	bool HttpResponse::isWebSocket() const {
@@ -193,6 +304,12 @@ namespace crazy {
 	HttpResponse::ptr HttpResponseParser::getResponse() const {
 		return response_;
 	}
+	std::size_t HttpResponseParser::interimResponseCount() const {
+		return interimResponseCount_;
+	}
+	void HttpResponseParser::setDataCallback(DataCallback callback) {
+		dataCallback_ = std::move(callback);
+	}
 	int32_t HttpResponseParser::onMessageBegin(http_parser* parser) {
 		HttpResponseParser* self = parserFrom(parser);
 		self->response_ = std::make_shared<HttpResponse>();
@@ -201,6 +318,7 @@ namespace crazy {
 		self->body_.clear();
 		self->reasonPhrase_.clear();
 		self->headerValueSeen_ = false;
+		self->headersComplete_ = false;
 		self->keepAlive_ = false;
 		return 0;
 	}
@@ -249,6 +367,8 @@ namespace crazy {
 			self->response_->setVersion(HttpVersion(parser->http_major, parser->http_minor));
 			self->response_->setStatus(static_cast<HttpStatus>(parser->status_code));
 			self->response_->setReasonPhrase(std::move(self->reasonPhrase_));
+			// 此后的头字段属于 trailer（分块消息尾部）
+			self->headersComplete_ = true;
 			return 0;
 		}
 		catch (...) {
@@ -260,6 +380,9 @@ namespace crazy {
 		HttpResponseParser* self = parserFrom(parser);
 		try {
 			self->body_.append(data, length);
+			if (self->dataCallback_ && length > 0) {
+				self->dataCallback_(std::string(data, length));
+			}
 			return 0;
 		}
 		catch (...) {
@@ -270,6 +393,14 @@ namespace crazy {
 	int32_t HttpResponseParser::onMessageComplete(http_parser* parser) {
 		HttpResponseParser* self = parserFrom(parser);
 		try {
+			// 临时响应（1xx 且非 101）不结束解析：丢弃后继续等待最终响应
+			const int statusCode = static_cast<int>(parser->status_code);
+			if (statusCode >= 100 && statusCode < 200 && statusCode != 101) {
+				self->interimResponseCount_ += 1;
+				self->headersComplete_ = false;
+				self->headerValueSeen_ = false;
+				return 0;
+			}
 			self->commitHeader();
 			self->response_->setBody(std::move(self->body_));
 			self->response_->parseMultipart();
@@ -287,7 +418,9 @@ namespace crazy {
 	}
 	void HttpResponseParser::commitHeader() {
 		if (!headerField_.empty()) {
-			response_->headers().insert(headerField_, headerValue_);
+			// 头段结束之后收到的字段属于 trailer，不得混进 headers
+			HttpHeader& target = headersComplete_ ? response_->trailers() : response_->headers();
+			target.insert(headerField_, headerValue_);
 			headerField_.clear();
 			headerValue_.clear();
 		}

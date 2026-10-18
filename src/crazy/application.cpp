@@ -15,6 +15,7 @@
 #include "crazy/daemon.h"
 #include "crazy/date_time.h"
 #include "crazy/logger.h"
+#include "crazy/net/socket_interface.h"
 #include "crazy/version.h"
 
 namespace crazy {
@@ -31,9 +32,8 @@ namespace crazy {
 		if (s_application == this) {
 			s_application = nullptr;
 		}
-#ifdef _WIN32
-		WSACleanup();
-#endif
+		// 不做 `WSACleanup`：WinSock 由 `crazy::ensureWinSock()` 进程级初始化，
+		// 应用对象销毁后仍可能有套接字（Socket / TlsSocket / LocalSocket）在使用
 	}
 	Application* Application::application() {
 		return s_application;
@@ -196,15 +196,16 @@ namespace crazy {
 	void Application::restartService() {
 		registerTimer("restart_service", 1000, std::bind(&Application::stopService, this, 1));
 	}
-	void Application::registerActor(ActorInterface::ptr actor) {
+	ActorInterface::ptr Application::registerActor(ActorInterface::ptr actor) {
 		const auto& name = actor->getName();
 		if (Config::GetBoolean("global", name, true)) {
 			if (actors_.count(name)) {
 				CRAZY_SYSTEM_ERROR() << "actor is exist, name = " << name;
-				return;
+				return nullptr;
 			}
-			actors_[name] = std::move(actor);
+			actors_[name] = actor;
 		}
+		return actor;
 	}
 	bool Application::dispatchCommandLine(const std::string& input, uint64_t sessionId, const std::string& requestId, std::string* error) {
 		auto recvMessage = StringUtil::Trim(input);
@@ -281,8 +282,7 @@ namespace crazy {
 			SetCurrentDirectory(szFilePath);
 		}
 
-		WSADATA wsaData;
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+		if (!ensureWinSock()) {
 			throw std::runtime_error("WSAStartup failed");
 		}
 #endif

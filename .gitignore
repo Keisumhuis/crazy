@@ -37,3 +37,7 @@ out
 out_linux
 out_windows
 doc/html/
+
+# 运行期日志（logger 在跑测试/示例时写入，勿入库）
+logs/
+

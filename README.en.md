@@ -33,8 +33,8 @@
 | [ServiceActor](doc/en/service-actor.md) | TCP server sessions, heartbeat, and business dispatch |
 | [ClientActor](doc/en/client-actor.md) | Outbound connection, disconnect, and heartbeat state |
 | [TelnetServiceActor](doc/en/telnet-service.md) | Password authentication and text command forwarding |
-| [HTTP server](doc/en/http-server.md) | Routes, deferred responses, static files, and listings |
-| [HTTP client](doc/en/http-client.md) | Synchronous requests, connection reuse, and multipart forms |
+| [HTTP server](doc/en/http-server.md) | Routes, deferred and chunked responses, static files with Range downloads, and listings |
+| [HTTP client](doc/en/http-client.md) | Synchronous and event-driven requests, connection reuse, multipart and chunked uploads |
 | [WebSocket](doc/en/websocket.md) | WebSocket server and blocking client |
 | [SMTP client](doc/en/smtp.md) | Plaintext SMTP, authentication, and text mail |
 

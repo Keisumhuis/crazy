@@ -78,12 +78,25 @@ namespace crazy {
 		bool registerStaticDirectory(const std::string& path, const std::string& directory, bool enableDirectoryListing = false) {
 			return ensureServer()->registerStaticDirectory(path, directory, enableDirectoryListing);
 		}
+		/**
+		 * @brief 最近一次 TLS 初始化失败原因（空表示没有失败）.
+		 * @note 可用性优先：TLS 初始化失败时不会拒绝启动，而是**降级为明文继续监听**该端口，
+		 * 同时打印醒目告警。这里保留同一份失败原因（含具体文件路径）供运维与测试查询，
+		 * 使这次降级**不可能变成静默行为**。
+		 */
+		const std::string& tlsInitError() const;
 
 	protected:
 		/**
 		 * @brief exec 进入主循环前启动 HTTP 服务.
 		 */
 		void startServer() override;
+		/**
+		 * @brief 按配置节构造 TLS 上下文.
+		 * @param section 配置节名（`HTTP` 或 `http`）.
+		 * @param error 失败原因（含具体文件路径）.
+		 */
+		TlsContext::ptr createTlsContext(const std::string& section, std::string& error);
 		/**
 		 * @brief 创建或获取 HTTP 服务.
 		 */
@@ -112,5 +125,7 @@ namespace crazy {
 		std::string address_ = "0.0.0.0";
 		//! 是否主动设置监听
 		bool listenSet_ = false;
+		//! 最近一次 TLS 初始化失败原因（含具体文件路径）
+		std::string tlsInitError_;
 	};
 }  // namespace crazy

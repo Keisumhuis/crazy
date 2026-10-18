@@ -350,17 +350,16 @@ namespace crazy {
             if (it == handleEvents_.end()) {
                 continue;
             }
-            else {
-                if (events[i].events & SelectorEventType::read) {
-                    if (it->second->read_) {
-                        it->second->read_();
-                    }
-                }
-                if (events[i].events & SelectorEventType::write) {
-                    if (it->second->write_) {
-                        it->second->write_();
-                    }
-                }
+            // 回调里可能注销本 fd 的事件（map 里对应项会被删掉），所以先把事件句柄与方向取出来，
+            // 不带着迭代器进回调；注销会把对应回调置空，下面就不会再触发它。
+            SelectorEvent::ptr handle = it->second;
+            const bool readable = 0 != (events[i].events & SelectorEventType::read);
+            const bool writable = 0 != (events[i].events & SelectorEventType::write);
+            if (readable && handle->read_) {
+                handle->read_();
+            }
+            if (writable && handle->write_) {
+                handle->write_();
             }
         }
 

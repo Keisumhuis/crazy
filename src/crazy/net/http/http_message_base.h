@@ -49,6 +49,20 @@ namespace crazy {
 		 */
 		void setHeaders(const HttpHeader& headers);
 		/**
+		 * @brief 获取 HTTP trailer 容器（分块消息的尾部字段）.
+		 * @note 请求与响应都可能有 trailer；解析器在头段结束后收到的字段会写入这里，
+		 * 未使用分块编码的消息其 trailer 容器恒为空.
+		 */
+		HttpHeader& trailers();
+		/**
+		 * @brief 获取 HTTP trailer 容器（常量）.
+		 */
+		const HttpHeader& trailers() const;
+		/**
+		 * @brief 设置整个 HTTP trailer 容器.
+		 */
+		void setTrailers(const HttpHeader& trailers);
+		/**
 		 * @brief 获取消息体.
 		 */
 		const std::string& body() const;
@@ -76,6 +90,8 @@ namespace crazy {
 		HttpVersion version_;
 		//! http头部
 		HttpHeader header_;
+		//! http trailer（分块消息尾部字段）
+		HttpHeader trailer_;
 		//! 消息体
 		std::string body_;
 		//! multipart 解析结果缓存

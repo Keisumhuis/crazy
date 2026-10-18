@@ -56,6 +56,46 @@ target_link_libraries(your_app PRIVATE
 
 Linux 下还需要链接 `pthread` 和 `dl`。推荐优先使用 `add_subdirectory`，避免平台和第三方库配置遗漏。
 
+### TLS 的传递依赖（`CRAZY_ENABLE_TLS`，默认 ON）
+
+`CRAZY_ENABLE_TLS` 默认为 **ON**：默认构建即会**静态链接**仓库内 `src/third_party/openssl`
+（OpenSSL 3.3.0，相对仓库根的路径）的 `ssl` 与 `crypto`，所以任何下游都应按下面这样把这两个库带上；
+用 `-DCRAZY_ENABLE_TLS=OFF` 可显式关闭（关闭后下游就不再需要它们）。
+注意这只是**编译期**是否链接 TLS 库；运行期是否真的走 HTTPS 仍由 `[HTTP]` 节的 `tls_enable` 与证书决定。
+由于 `crazy` 是**静态库**，这份依赖不会**被自动“打包”进去**：**下游可执行文件链接时同样需要提供
+`ssl` 与 `crypto`**。
+
+- 用 `add_subdirectory` 接入时，CMake 目标会把这一依赖自动传递（`target_link_libraries(... crazy)` 即可）。
+- 手动链接 `crazy.lib` / `libcrazy.a` 时，必须自己补上，例如 Windows：
+
+```cmake
+target_link_libraries(your_app PRIVATE
+    path/to/crazy/build/Release/crazy.lib
+    path/to/crazy/src/third_party/openssl/lib/windows/x64/release/ssl.lib
+    path/to/crazy/src/third_party/openssl/lib/windows/x64/release/crypto.lib
+    ws2_32 crypt32 advapi32 user32 bcrypt gdi32
+)
+```
+
+并在 configure 时把 `CRAZY_OPENSSL_ROOT`（默认即仓库内 `src/third_party/openssl`）指向同一份包。
+Linux 下对应的是 `lib/{linux}/{x64|x86}/{debug|release}/libssl.a` 与 `libcrypto.a`。
+
+OpenSSL 的许可与署名要求见仓库根 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)：
+该副本内**不含任何 LICENSE / COPYING / NOTICE**，分发链接了它的产物时必须一并保留 Apache-2.0 文本。
+
+### 随包 CA bundle（客户端默认信任库）
+
+客户端默认就能校验真实公网 HTTPS 站点：随框架分发一份 CA bundle `src/third_party/ca/cacert.pem`
+（188900 字节 / 121 张证书，取自 `https://curl.se/ca/cacert.pem`，数据源自 Mozilla CA extract）。
+它在 **configure 期**被读成源码树内的 `src/crazy/net/ca_bundle.cpp`（随仓库提交）并**编译进静态库**，
+因此**下游不需要额外链接任何库、也不需要随发行附带 CA 文件**，运行期不做任何相对路径查找。
+来源、SHA256 与许可（MPL-2.0）说明见仓库根 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。
+
+- 该 PEM 缺失时 configure 只**告警**（不硬失败），客户端退回「只用 OpenSSL 默认验证路径」。
+- 可用 `-DCRAZY_CA_BUNDLE_FILE=<path>` 指向别的 PEM；替换该文件后重新 configure 即生效。
+- 信任库优先级（`tls_ca_file` / `SSL_CERT_FILE` / 随包 bundle）见
+  [http-client.md](http-client.md) 的「默认信任库与覆盖方式」。
+
 ## 典型工程布局
 
 ```text
@@ -103,6 +143,7 @@ cd build
 | ClickHouse | 可达的 ClickHouse 服务和 `[ClickHouse]` 配置段 |
 | HTTP 静态目录 | 注册目录真实存在且进程有读取权限 |
 | SMTP | 可达的 SMTP 服务，当前仅支持明文连接 |
+| HTTPS / WSS | 编译期默认支持（`CRAZY_ENABLE_TLS` 默认 ON）；运行期启用时 `[HTTP]` 节需给出可读的 PEM 证书与私钥与 `tls_enable=true`（客户端还需要 `tls_ca_file` 或系统信任库）；`-DCRAZY_ENABLE_TLS=OFF` 构建的产物则完全不支持 |
 | Telnet | 端口可监听，并配置非空且足够强的密码 |
 
 ## 平台注意事项

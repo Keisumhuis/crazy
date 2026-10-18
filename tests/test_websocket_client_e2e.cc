@@ -7,6 +7,7 @@
  */
 
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <cstdlib>
 #include <functional>
@@ -89,9 +90,14 @@ namespace {
 			request.append(buf, n);
 		}
 
-		// 提取 Sec-WebSocket-Key
-		const std::string keyHeader = "Sec-WebSocket-Key:";
-		const size_t keyPos = request.find(keyHeader);
+		// 提取 Sec-WebSocket-Key（头字段名大小写不敏感：HttpHeader 序列化时统一小写）
+		std::string loweredRequest;
+		loweredRequest.reserve(request.size());
+		for (const char ch : request) {
+			loweredRequest += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+		}
+		const std::string keyHeader = "sec-websocket-key:";
+		const size_t keyPos = loweredRequest.find(keyHeader);
 		if (keyPos == std::string::npos) {
 			client->close();
 			return;
@@ -101,7 +107,7 @@ namespace {
 			(request[valueStart] == ' ' || request[valueStart] == '\t')) {
 			++valueStart;
 		}
-		const size_t valueEnd = request.find("\r\n", valueStart);
+		const size_t valueEnd = loweredRequest.find("\r\n", valueStart);
 		const std::string key = request.substr(valueStart, valueEnd - valueStart);
 
 		// 发送握手响应

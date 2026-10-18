@@ -9,46 +9,60 @@
  */
 #include "crazy.h"
 #include <iostream>
+#include <cstdlib>
+
+namespace {
+    int failures = 0;
+
+    void check(bool condition, const char* expression, int line) {
+        if (!condition) {
+            std::cerr << "check failed at line " << line << ": " << expression << std::endl;
+            std::exit(1);
+        }
+    }
+}  // namespace
+
+#define CHECK(expression) check((expression), #expression, __LINE__)
 
 int main() {
     // 测试异常类
     {
         crazy::ClickHouseException e("test error", 100);
-        assert(e.getErrorCode() == 100);
-        assert(std::string(e.what()) == "test error");
+        CHECK(e.getErrorCode() == 100);
+        CHECK(std::string(e.what()) == "test error");
     }
     {
         crazy::ClickHouseConnectionException e("connection error");
-        assert(std::string(e.what()) == "connection error");
+        CHECK(std::string(e.what()) == "connection error");
     }
     {
         crazy::ClickHouseQueryException e("query error", 200);
-        assert(e.getErrorCode() == 200);
+        CHECK(e.getErrorCode() == 200);
     }
 
     // 测试 ClickHouseRow
     {
         crazy::ClickHouseRow row({"a", "b", "c"});
-        assert(row.size() == 3);
-        assert(row[0] == "a");
-        assert(row[1] == "b");
-        assert(row[2] == "c");
-        assert(static_cast<bool>(row) == true);
+        CHECK(row.size() == 3);
+        CHECK(row[0] == "a");
+        CHECK(row[1] == "b");
+        CHECK(row[2] == "c");
+        CHECK(static_cast<bool>(row) == true);
     }
     {
         crazy::ClickHouseRow empty_row;
-        assert(empty_row.size() == 0);
-        assert(static_cast<bool>(empty_row) == false);
+        CHECK(empty_row.size() == 0);
+        CHECK(static_cast<bool>(empty_row) == false);
     }
 
     // 测试 ClickHouseResult 空结果
     {
         auto result = std::make_shared<crazy::ClickHouseResult>();
-        assert(result->isValid() == false);
-        assert(result->isEmpty() == true);
-        assert(result->count() == 0);
-        assert(result->fields_count() == 0);
-        assert(result->next() == false);
+        CHECK(result->isValid() == false);
+        CHECK(result->isEmpty() == true);
+        CHECK(result->count() == 0);
+        CHECK(result->fields_count() == 0);
+        CHECK(result->next() == false);
     }
 
     // 测试 exec_fmt 异常抛出（未连接时）
@@ -56,7 +70,7 @@ int main() {
         auto conn = std::make_shared<crazy::ClickHouseConnection>();
         try {
             conn->exec_fmt("SELECT %d", 1);
-            assert(false && "Should have thrown exception");
+            CHECK(false && "Should have thrown exception");
         } catch (const crazy::ClickHouseConnectionException& e) {
             // 未连接时应该抛出连接异常
         }
@@ -64,10 +78,10 @@ int main() {
 
     // 测试 validateParams
     {
-        assert(crazy::ClickHouseConnection::validateParams("localhost", "default", 9000) == true);
-        assert(crazy::ClickHouseConnection::validateParams("", "default", 9000) == false);
-        assert(crazy::ClickHouseConnection::validateParams("localhost", "", 9000) == false);
-        assert(crazy::ClickHouseConnection::validateParams("localhost", "default", 0) == false);
+        CHECK(crazy::ClickHouseConnection::validateParams("localhost", "default", 9000) == true);
+        CHECK(crazy::ClickHouseConnection::validateParams("", "default", 9000) == false);
+        CHECK(crazy::ClickHouseConnection::validateParams("localhost", "", 9000) == false);
+        CHECK(crazy::ClickHouseConnection::validateParams("localhost", "default", 0) == false);
     }
 
     // 尝试连接（如果 ClickHouse 服务可用）
@@ -79,7 +93,7 @@ int main() {
             
             // 测试 exec
             auto result = conn->exec("SELECT 1 AS test_col");
-            assert(result != nullptr);
+            CHECK(result != nullptr);
 
             if (result->next()) {
                 auto row = result->row();
@@ -88,7 +102,7 @@ int main() {
 
             // 测试 exec_fmt
             auto result2 = conn->exec_fmt("SELECT %d AS num, '%s' AS str", 42, "hello");
-            assert(result2 != nullptr);
+            CHECK(result2 != nullptr);
 
             if (result2->next()) {
                 auto row = result2->row();
@@ -117,24 +131,24 @@ int main() {
 
             // 验证插入
             auto result3 = conn->exec("SELECT id, name FROM test_db.test_table ORDER BY id");
-            assert(result3 != nullptr);
+            CHECK(result3 != nullptr);
             uint32_t row_count = 0;
             while (result3->next()) {
                 auto row = result3->row();
                 CRAZY_ROOT_DEBUG() << "id=" << row[0] << ", name=" << row[1];
                 ++row_count;
             }
-            assert(row_count == 2);
+            CHECK(row_count == 2);
 
             // 清理
             conn->exec("DROP TABLE IF EXISTS test_db.test_table");
             conn->exec("DROP DATABASE IF EXISTS test_db");
 
             // 测试 isConnected/ping/close
-            assert(conn->isConnected() == true);
-            assert(conn->ping() == true);
+            CHECK(conn->isConnected() == true);
+            CHECK(conn->ping() == true);
             conn->close();
-            assert(conn->isConnected() == false);
+            CHECK(conn->isConnected() == false);
 
             CRAZY_ROOT_INFO() << "All ClickHouse connection tests passed!";
         } else {
@@ -146,15 +160,15 @@ int main() {
     {
         crazy::ClickHouseConnectionPoolConfig config;
         config.host = "";
-        assert(config.isValid() == false);
+        CHECK(config.isValid() == false);
 
         config.host = "localhost";
         config.user = "default";
         config.port = 9000;
-        assert(config.isValid() == true);
+        CHECK(config.isValid() == true);
 
         config.max_connections = 1;
-        assert(config.isValid() == false);
+        CHECK(config.isValid() == false);
     }
 
     // 测试连接池启动/停止（不依赖实际服务器）
@@ -169,10 +183,10 @@ int main() {
         config.max_connections = 5;
 
         auto pool = std::make_shared<crazy::ClickHouseConnectionPool>(config);
-        assert(pool->isRunning() == false);
+        CHECK(pool->isRunning() == false);
         pool->start();
         pool->stop();
-        assert(pool->isRunning() == false);
+        CHECK(pool->isRunning() == false);
     }
 
     CRAZY_ROOT_INFO() << "All ClickHouse tests completed!";

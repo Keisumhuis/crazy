@@ -6,8 +6,7 @@
 
 namespace crazy {
 	ServiceActor::ServiceActor(const std::string& name)
-		: ActorInterface(name), acceptor_(std::make_shared<Acceptor>()) {
-	}
+		: ActorInterface(name), acceptor_(std::make_shared<Acceptor>()) {}
 	ServiceActor::~ServiceActor() {
 		sessions_.clear();
 	}
@@ -70,7 +69,7 @@ namespace crazy {
 		session->registerSelectEventUnregisterCallback([this](int32_t fd, SelectorEventType type) {
 			this->unregisterEvent(fd, type);
 			});
-		
+
 		sessions_[session->getSessionId()] = session;
 		auto connectedMessage = std::make_shared<crazy::MessageBase>();
 		connectedMessage->setSessionId(session->getSessionId());
@@ -90,5 +89,38 @@ namespace crazy {
 	}
 	void ServiceActor::onMessage(MessageBase::ptr message) {
 		sendMessage(message);
+	}
+	std::map<std::string, std::string> ServiceActor::helps() {
+		return{
+			{"print_clients", "打印所有下游客户端信息"},
+			{"kick_client", "剔除下游客户端，例如：kick_client--{sessionId}"},
+		};
+	}
+	void ServiceActor::handleCommandLineMessageBase(MessageBase::ptr request, MessageBase::ptr response) {
+		auto&& commands = StringUtil::Split(request->getData());
+		if ("print_clients" == commands[0]) {
+			std::stringstream ss;
+			ss << "client count = " << sessions_.size() << "\n";
+			for (const auto& [sessionId, session] : sessions_) {
+				ss << "sessionId = " << sessionId
+					<< ", socket = " << session->socket()
+					<< ", remoteAddress = " << session->remoteAddress()
+					<< ", lastHeartbeat = " << session->lastHeartbeatTimestamp() << "\n";
+			}
+			response->setData(ss.str());
+			return;
+		}
+		if ("kick_client" == commands[0]) {
+			if (commands.size() < 2) {
+				response->setData("usage: kick_client--{sessionId}");
+			}
+			else {
+				auto itSession = sessions_.find(std::stoull(commands[1]));
+				if (itSession != sessions_.end()) {
+					onDisconnect(itSession->second);
+				}
+				response->setData("执行成功");
+			}
+		}
 	}
 }

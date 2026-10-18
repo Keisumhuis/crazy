@@ -28,6 +28,9 @@ namespace crazy {
 		}
 
 		bool IsLocalSocketAccepting(const std::string& address) {
+			if (!ensureWinSock()) {
+				return false;
+			}
 			socket_t probeSocket = ::socket(AF_UNIX, SOCK_STREAM, 0);
 			if (probeSocket == INVALID_SOCKET) {
 				return false;
@@ -61,7 +64,8 @@ namespace crazy {
 		clientSocket->close();
 		clientSocket->socket_ = ::accept(socket_, nullptr, nullptr);
 		if (clientSocket->socket_ == INVALID_SOCKET) {
-			CRAZY_SYSTEM_ERROR() << "accept error errno = " << WSAGetLastError() << " errstr = " << strerror(errno);
+			const int32_t error = WSAGetLastError();
+			CRAZY_SYSTEM_ERROR() << "accept error errno = " << error << " errstr = " << socketErrorText(error);
 			return nullptr;
 		}
 		clientSocket->active_.store(true);
@@ -83,7 +87,7 @@ namespace crazy {
 		if (::bind(socket_, (sockaddr*)&listenSockaddr, sizeof(listenSockaddr)) != 0) {
 			const int32_t bindError = WSAGetLastError();
 			if (!IsAddressInUse(bindError)) {
-				CRAZY_SYSTEM_ERROR() << "bind error errno = " << bindError << " errstr = " << strerror(errno);
+				CRAZY_SYSTEM_ERROR() << "bind error errno = " << bindError << " errstr = " << socketErrorText(bindError);
 				close();
 				return false;
 			}
@@ -107,14 +111,16 @@ namespace crazy {
 				return false;
 			}
 			if (::bind(socket_, (sockaddr*)&listenSockaddr, sizeof(listenSockaddr)) != 0) {
-				CRAZY_SYSTEM_ERROR() << "bind error errno = " << WSAGetLastError() << " errstr = " << strerror(errno);
+				const int32_t error = WSAGetLastError();
+				CRAZY_SYSTEM_ERROR() << "bind error errno = " << error << " errstr = " << socketErrorText(error);
 				close();
 				return false;
 			}
 		}
 
 		if (::listen(socket_, SOMAXCONN) != 0) {
-			CRAZY_SYSTEM_ERROR() << "listen error errno = " << WSAGetLastError() << " errstr = " << strerror(errno);
+			const int32_t error = WSAGetLastError();
+			CRAZY_SYSTEM_ERROR() << "listen error errno = " << error << " errstr = " << socketErrorText(error);
 			close();
 			return false;
 		}
@@ -135,8 +141,9 @@ namespace crazy {
 		}
 
 		if (::connect(socket_, (sockaddr*)&connectSockaddr, sizeof(connectSockaddr)) != 0) {
-			CRAZY_SYSTEM_ERROR() << "socket = " << socket_ << " errorno = "
-				<< WSAGetLastError() << " errstr = " << strerror(errno);
+			const int32_t error = WSAGetLastError();
+			CRAZY_SYSTEM_ERROR() << "socket = " << socket_ << " errorno = " << error
+				<< " errstr = " << socketErrorText(error);
 			return false;
 		}
 		return true;

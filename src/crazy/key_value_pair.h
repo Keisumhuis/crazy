@@ -226,6 +226,16 @@ namespace crazy {
      */
     inline std::string datacsv(const std::vector<KeyValuePair>& values, const std::string& delimiter = ",") {
         std::stringstream ss;
+        if (!values.empty()) {
+            for (auto row = values.begin(); row != values.end(); ) {
+                ss << row->key();
+                ++row;
+                if (row != values.end()) {
+                    ss << delimiter;
+                }
+            }
+            ss << std::endl;
+        }
         for (auto row = values.begin(); row != values.end(); ) {
             ss << row->value();
             ++row;
@@ -239,10 +249,28 @@ namespace crazy {
     /**
      * @brief key_value_pair 序列化为csv格式字符串.
      */
-    inline std::string datacsv(const std::vector<std::vector<KeyValuePair>>& values) {
+    inline std::string datacsv(const std::vector<std::vector<KeyValuePair>>& values, const std::string& delimiter = ",") {
         std::stringstream ss;
+        if (!values.empty()) {
+            const auto& header = values.front();
+            for (auto row = header.begin(); row != header.end(); ) {
+                ss << row->key();
+                ++row;
+                if (row != header.end()) {
+                    ss << delimiter;
+                }
+            }
+            ss << std::endl;
+        }
         for (auto& rows : values) {
-            ss << datacsv(rows) << std::endl;
+            for (auto row = rows.begin(); row != rows.end(); ) {
+                ss << row->value();
+                ++row;
+                if (row != rows.end()) {
+                    ss << delimiter;
+                }
+            }
+            ss << std::endl;
         }
         return ss.str();
     }

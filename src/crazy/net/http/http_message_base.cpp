@@ -51,6 +51,15 @@ namespace crazy {
 		formUrlEncoded_.clear();
 		formUrlEncodedParsed_ = false;
 	}
+	HttpHeader& HttpMessageBase::trailers() {
+		return trailer_;
+	}
+	const HttpHeader& HttpMessageBase::trailers() const {
+		return trailer_;
+	}
+	void HttpMessageBase::setTrailers(const HttpHeader& trailers) {
+		trailer_ = trailers;
+	}
 	const std::string& HttpMessageBase::body() const {
 		return body_;
 	}

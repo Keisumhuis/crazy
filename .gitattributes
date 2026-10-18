@@ -1,0 +1,5 @@
+# 仓库默认按 CRLF 检出（见 .editorconfig），但 shell 脚本必须是 LF：
+# WSL/Linux 下 bash 遇到 CRLF 会直接报 "$'\r': command not found" 和
+# "syntax error: unexpected end of file"，脚本一行都执行不了。
+* text=auto
+*.sh text eol=lf

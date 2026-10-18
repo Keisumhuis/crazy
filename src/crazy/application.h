@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file application.h
  * @author kesium (keisumhuis@gmail.com)
  * @brief 应用管理类
@@ -76,7 +76,7 @@ namespace crazy {
 		/**
 		 * @brief 注册actor.
 		 */
-		void registerActor(ActorInterface::ptr actor);
+		ActorInterface::ptr registerActor(ActorInterface::ptr actor);
 		/**
 		 * @brief 分发命令行消息.
 		 */
@@ -93,12 +93,12 @@ namespace crazy {
 		 * @brief 注册actor.
 		 */
 		template <typename actor_type>
-		void registerActor(const std::string& name);
+		std::shared_ptr<actor_type> registerActor(const std::string& name);
 		/**
 		 * @brief 注册actor.
 		 */
 		template <typename actor_type, typename ...args_type>
-		void registerActor(const std::string& name, args_type...args);
+		std::shared_ptr<actor_type> registerActor(const std::string& name, args_type...args);
 		/**
 		 * @brief 添加路由规则.
 		 */
@@ -182,11 +182,15 @@ namespace crazy {
 		MySQLConnectionPool::ptr mysqlConnectionPool_ = nullptr;
 	};
 	template <typename actor_type>
-	void Application::registerActor(const std::string& name) {
-		registerActor(std::make_shared<actor_type>(name));
+	std::shared_ptr<actor_type> Application::registerActor(const std::string& name) {
+		auto actor = std::make_shared<actor_type>(name);
+		registerActor(actor);
+		return actor;
 	}
 	template <typename actor_type, typename ...args_type>
-	void Application::registerActor(const std::string& name, args_type...args) {
-		registerActor(std::make_shared<actor_type>(name, std::forward<args_type>(args)...));
+	std::shared_ptr<actor_type> Application::registerActor(const std::string& name, args_type...args) {
+		auto actor = std::make_shared<actor_type>(name, std::forward<args_type>(args)...);
+		registerActor(actor);
+		return actor;
 	}
 }

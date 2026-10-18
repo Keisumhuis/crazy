@@ -15,6 +15,7 @@
 #include "crazy/net/http/http_request.h"
 #include "crazy/net/http/http_response.h"
 #include "crazy/net/http/http_router.h"
+#include "crazy/net/http/http_version.h"
 #include "crazy/net/http/websocket_parser.h"
 #include "crazy/net/selector.h"
 #include "crazy/net/socket.h"
@@ -117,6 +118,9 @@ namespace crazy {
 		 */
 		void sendClose(uint16_t code = 1000);
 
+		//! 分块发送的高水位标记：发送缓冲低于该值时继续向数据源拉取数据
+		static constexpr size_t kChunkHighWaterMark = 64 * 1024;
+
 	protected:
 		/**
 		 * @brief 处理完整请求.
@@ -126,6 +130,18 @@ namespace crazy {
 		 * @brief 发送 HTTP 响应.
 		 */
 		void sendResponse(HttpResponse::ptr response);
+		/**
+		 * @brief 写出一段分块数据或终止块.
+		 */
+		void sendChunk(HttpResponse::ptr response, const std::string& data, bool finished);
+		/**
+		 * @brief 回复 `100 Continue` 临时响应（客户端发送了 Expect: 100-continue）.
+		 */
+		void sendContinue();
+		/**
+		 * @brief 向分块数据源拉取数据并写出（大文件等按需流式发送）.
+		 */
+		void pumpStreamingChunks();
 		/**
 		 * @brief 尝试直接发送缓冲数据.
 		 */
@@ -192,10 +208,22 @@ namespace crazy {
 		bool writeRegistered_ = false;
 		//! 当前请求是否正在等待响应
 		bool requestInFlight_ = false;
+		//! 当前请求的 HTTP 版本（分块响应据此决定是否降级为 HTTP/1.0 语义）
+		HttpVersion requestVersion_;
+		//! 是否已向客户端发送 100 Continue
+		bool continueSent_ = false;
+		//! 由数据源驱动的分块响应（按需拉取，避免大响应整体进内存）
+		HttpResponse::ptr streamingResponse_;
 		//! 当前响应完成后是否允许复用连接
 		bool currentRequestKeepAlive_ = false;
 		//! 写完后关闭连接
 		bool closeAfterWrite_ = false;
+		//! 分块响应是否正在写出（结束前不得复用连接）
+		bool chunkedStreaming_ = false;
+		//! 分块响应头是否已经写出
+		bool chunkedHeaderSent_ = false;
+		//! 分块响应结束后是否允许复用连接
+		bool chunkedKeepAlive_ = false;
 		//! 会话线程任务回调
 		std::function<void(std::function<void()>)> postCallback_;
 		//! 会话是否已关闭

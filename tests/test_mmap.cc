@@ -1,9 +1,22 @@
 #include "crazy.h"
 #include <iostream>
-#include <cassert>
+#include <cstdlib>
 #include <filesystem>
 
 using namespace crazy;
+
+namespace {
+	int failures = 0;
+
+	void check(bool condition, const char* expression, int line) {
+		if (!condition) {
+			std::cerr << "check failed at line " << line << ": " << expression << std::endl;
+			std::exit(1);
+		}
+	}
+}  // namespace
+
+#define CHECK(expression) check((expression), #expression, __LINE__)
 
 void test_basic() {
     std::cout << "=== Test 1: Basic write and read ===\n";
@@ -15,25 +28,25 @@ void test_basic() {
     {
         MmapVector<int> vec(path, 2); // 初始容量=2
 
-        assert(vec.size() == 0);
-        assert(vec.capacity() == 2);
+        CHECK(vec.size() == 0);
+        CHECK(vec.capacity() == 2);
 
         vec[0] = 100;
         vec[1] = 200;
 
-        assert(vec.size() == 2);
-        assert(vec[0] == 100);
-        assert(vec[1] == 200);
+        CHECK(vec.size() == 2);
+        CHECK(vec[0] == 100);
+        CHECK(vec[1] == 200);
     }
 
     // 重新打开，验证持久化
     {
         MmapVector<int> vec(path, 0); // 容量参数在已有文件时被忽略
 
-        assert(vec.size() == 2);
-        assert(vec.capacity() == 2);
-        assert(vec[0] == 100);
-        assert(vec[1] == 200);
+        CHECK(vec.size() == 2);
+        CHECK(vec.capacity() == 2);
+        CHECK(vec[0] == 100);
+        CHECK(vec[1] == 200);
     }
 
     std::cout << "✅ Passed\n";
@@ -48,34 +61,34 @@ void test_auto_grow() {
         MmapVector<int> vec(path, 1); // 初始容量=1
 
         vec[0] = 10;
-        assert(vec.size() == 1);
-        assert(vec.capacity() == 1);
+        CHECK(vec.size() == 1);
+        CHECK(vec.capacity() == 1);
 
         // 写入索引 3 → 需要 capacity >= 4
         vec[3] = 40;
 
         // 检查自动扩容：至少 4，且 ≥ 1*2=2 → 实际应为 max(4, 2) = 4
-        assert(vec.size() == 4);
-        assert(vec.capacity() >= 4);
-        assert(vec[0] == 10);
-        assert(vec[3] == 40);
+        CHECK(vec.size() == 4);
+        CHECK(vec.capacity() >= 4);
+        CHECK(vec[0] == 10);
+        CHECK(vec[3] == 40);
 
         // 再写入索引 10 → 触发二次扩容
         vec[10] = 110;
-        assert(vec.size() == 11);
-        assert(vec.capacity() >= 11);
+        CHECK(vec.size() == 11);
+        CHECK(vec.capacity() >= 11);
         // 扩容策略：上次 capacity=4 → 新容量 = max(11, 4*2=8) = 11 或更大（如 16，若实现取上界）
         // 我们只断言 >=11
-        assert(vec[10] == 110);
+        CHECK(vec[10] == 110);
     }
 
     // 重新加载验证
     {
         MmapVector<int> vec(path, 0);
-        assert(vec.size() == 11);
-        assert(vec[0] == 10);
-        assert(vec[3] == 40);
-        assert(vec[10] == 110);
+        CHECK(vec.size() == 11);
+        CHECK(vec[0] == 10);
+        CHECK(vec[3] == 40);
+        CHECK(vec[10] == 110);
     }
 
     std::cout << "✅ Passed\n";
@@ -91,13 +104,13 @@ void test_at_and_const() {
         vec[2] = 999;
 
         // at() 安全访问
-        assert(vec.at(2) != nullptr);
-        assert(*vec.at(2) == 999);
-        assert(vec.at(10) == nullptr); // 越界
+        CHECK(vec.at(2) != nullptr);
+        CHECK(*vec.at(2) == 999);
+        CHECK(vec.at(10) == nullptr); // 越界
 
         // const 访问
         const auto& cvec = vec;
-        assert(cvec[2] == 999);
+        CHECK(cvec[2] == 999);
         // cvec[5] = 1; // 编译错误（const）
     }
 

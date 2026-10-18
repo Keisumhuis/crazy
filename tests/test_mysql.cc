@@ -1,6 +1,5 @@
 #include "crazy.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -10,7 +9,18 @@ namespace {
 		const char* value = std::getenv(name);
 		return (value && *value) ? value : nullptr;
 	}
+
+	int failures = 0;
+
+	void check(bool condition, const char* expression, int line) {
+		if (!condition) {
+			std::cerr << "check failed at line " << line << ": " << expression << std::endl;
+			std::exit(1);
+		}
+	}
 }
+
+#define CHECK(expression) check((expression), #expression, __LINE__)
 
 int main() {
 	const char* host = getEnv("CRAZY_MYSQL_HOST");
@@ -37,8 +47,8 @@ int main() {
 	}
 
 	auto result = connection->exec("SELECT 1");
-	assert(result != nullptr);
-	assert(result->isValid());
+	CHECK(result != nullptr);
+	CHECK(result->isValid());
 
 	std::cout << "mysql test passed" << std::endl;
 	return 0;

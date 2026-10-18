@@ -25,4 +25,24 @@ namespace crazy {
 		}
 		return HttpStatus::OK;
 	}
+	std::string httpChunkSizeToHex(std::size_t size) {
+		static const char digits[] = "0123456789abcdef";
+		std::string text;
+		do {
+			text += digits[size & 0xF];
+			size >>= 4;
+		} while (size != 0);
+		return std::string(text.rbegin(), text.rend());
+	}
+	std::string httpEncodeChunk(const std::string& data) {
+		if (data.empty()) {
+			// 空数据不产生数据块（0 长度是终止块语义，由调用方单独写出）
+			return std::string();
+		}
+		std::string result = httpChunkSizeToHex(data.size());
+		result += "\r\n";
+		result += data;
+		result += "\r\n";
+		return result;
+	}
 }  // namespace crazy

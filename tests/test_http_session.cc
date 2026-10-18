@@ -146,7 +146,20 @@ int main() {
 		crazy::HttpResponse response;
 		CHECK(router.handle(request, response));
 		CHECK(response.status() == crazy::HttpStatus::OK);
-		CHECK(response.body() == "<h1>crazy</h1>");
+		// 静态资源默认按分块方式流式发送：响应体由数据源产出，body() 为空
+		CHECK(response.isChunked());
+		CHECK(response.isStreaming());
+		CHECK(response.body().empty());
+		std::string streamed;
+		std::string chunk;
+		for (;;) {
+			chunk.clear();
+			if (response.chunkSource()(chunk) == 0) {
+				break;
+			}
+			streamed += chunk;
+		}
+		CHECK(streamed == "<h1>crazy</h1>");
 		const auto contentType = response.headers().get("Content-Type");
 		CHECK(contentType && *contentType == "text/html; charset=utf-8");
 
